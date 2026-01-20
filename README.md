@@ -16,7 +16,7 @@ Infrastructure monorepo for self-hosted services on Oracle Cloud free tier.
 | Provider | Directory | Status |
 |----------|-----------|--------|
 | Oracle Cloud | [oci-vps](./oci-vps/) | Ready (free tier) |
-| Kamatera | [kamatera-vps](./kamatera-vps/) | Planned |
+| Kamatera | [kamatera-vps](./kamatera-vps/) | Ready (~$12/mo) |
 
 ## Architecture
 
@@ -80,7 +80,7 @@ make deploy
 ├── oci-vps/                # Oracle Cloud provisioning
 │   ├── terraform/
 │   └── Makefile
-├── kamatera-vps/           # Kamatera (planned)
+├── kamatera-vps/           # Kamatera VPS (fallback)
 ├── scripts/                # Shared scripts
 │   ├── backup.sh           # Backup all services
 │   ├── restore.sh          # Restore from backup

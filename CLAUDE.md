@@ -11,7 +11,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── openproject/        # Project management (OpenProject)
 ├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
-├── kamatera-vps/       # Kamatera provisioning (planned)
+├── kamatera-vps/       # Kamatera VPS (fallback provider)
 ├── .sops.yaml          # SOPS encryption config
 └── SETUP.md            # Manual setup guide
 ```
@@ -30,7 +30,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Provider | Status | Cost |
 |----------|--------|------|
 | [oci-vps](./oci-vps/) | Ready | Free tier |
-| [kamatera-vps](./kamatera-vps/) | Planned | ~$10/mo |
+| [kamatera-vps](./kamatera-vps/) | Ready | ~$12/mo |
 
 ## Secrets Management
 
