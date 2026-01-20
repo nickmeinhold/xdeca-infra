@@ -23,10 +23,10 @@ ssh:
 
 # Deploy services
 deploy:
-	./scripts/deploy.sh all
+	../scripts/deploy-to.sh $$(cd terraform && terraform output -raw instance_public_ip) all
 
 deploy-%:
-	./scripts/deploy.sh $*
+	../scripts/deploy-to.sh $$(cd terraform && terraform output -raw instance_public_ip) $*
 
 # SOPS/age secrets management
 secrets-setup:
