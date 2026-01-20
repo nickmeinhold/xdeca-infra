@@ -3,9 +3,5 @@
 
 creation_rules:
   # Match secret yaml files in service and provider directories
-  - path_regex: (openproject|twenty|discourse|kamatera-vps)/.*\.yaml$
-    age: >-
-      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    # Replace with your actual age public key
-    # Generate with: age-keygen -o ~/.config/sops/age/keys.txt
-    # Then copy the public key (starts with age1...) here
+  - path_regex: (openproject|twenty|discourse|bigbluebutton|kamatera-vps)/.*\.yaml$
+    age: age1mkelwyppmll44ehjnarunmtamcxpee7jljyl475mlvxma7dm4f3q6lnmks

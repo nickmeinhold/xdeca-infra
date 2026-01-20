@@ -1,0 +1,9 @@
+# BigBlueButton configuration
+# Used by install script
+
+hostname: bbb.example.com
+admin_email: admin@example.com
+
+# Optional: Greenlight admin
+greenlight_admin_email: admin@example.com
+greenlight_admin_password: your-secure-password
