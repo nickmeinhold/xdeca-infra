@@ -74,25 +74,21 @@ make deploy
 ```
 .
 ├── caddy/                  # Reverse proxy config
-│   ├── Caddyfile
-│   └── docker-compose.yml
 ├── discourse/              # Forum
-│   ├── app.yml.example
-│   └── discourse.yaml.example
 ├── openproject/            # Project management
-│   ├── docker-compose.yml
-│   └── openproject.yaml.example
 ├── twenty/                 # CRM
-│   ├── docker-compose.yml
-│   └── twenty.yaml.example
 ├── oci-vps/                # Oracle Cloud provisioning
 │   ├── terraform/
-│   ├── scripts/
 │   └── Makefile
 ├── kamatera-vps/           # Kamatera (planned)
-├── .sops.yaml              # SOPS encryption config
-├── .githooks/              # Git hooks
-└── SETUP.md                # Manual setup guide
+├── scripts/                # Shared scripts
+│   ├── backup.sh           # Backup all services
+│   ├── restore.sh          # Restore from backup
+│   └── setup-backups.sh    # Configure backup infra
+├── docs/                   # Documentation
+│   └── backups.md
+├── .githooks/              # Git hooks (pre-commit)
+└── .sops.yaml              # SOPS encryption config
 ```
 
 ## Secrets Management
@@ -126,16 +122,23 @@ git config core.hooksPath .githooks
 - **Storage**: 50GB
 - **Cost**: $0/month
 
-## Backup Strategy
+## Backups
 
-| Data | Method | Destination |
-|------|--------|-------------|
-| Config | Git | This repo |
-| Secrets | Git (SOPS encrypted) | This repo |
-| Databases | pg_dump | Oracle Object Storage |
-| Discourse | Built-in backup | Oracle Object Storage |
+All services backup daily to Oracle Object Storage (Archive tier, free up to 10GB).
 
-See [discourse/discourse-backup.md](./discourse/discourse-backup.md) for details.
+| Service | Data | Schedule | Retention |
+|---------|------|----------|-----------|
+| OpenProject | PostgreSQL | Daily 4 AM | 7 days |
+| Twenty | PostgreSQL + files | Daily 4 AM | 7 days |
+| Discourse | Built-in backup | Daily 3 AM | 7 days |
+
+Setup after provisioning:
+```bash
+ssh ubuntu@<vps-ip>
+./scripts/setup-backups.sh
+```
+
+See [docs/backups.md](./docs/backups.md) for full backup & restore documentation.
 
 ## License
 
