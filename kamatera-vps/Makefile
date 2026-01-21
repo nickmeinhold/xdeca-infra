@@ -1,4 +1,8 @@
-.PHONY: init plan apply destroy deploy ssh secrets-create secrets-edit
+.PHONY: init plan apply destroy deploy ssh secrets-create secrets-edit state-pull state-push
+
+# Age encryption config
+AGE_KEY_FILE ?= $(HOME)/.config/sops/age/keys.txt
+AGE_PUBKEY = age1mkelwyppmll44ehjnarunmtamcxpee7jljyl475mlvxma7dm4f3q6lnmks
 
 # Load Kamatera credentials from encrypted secrets
 define load_secrets
@@ -6,21 +10,39 @@ define load_secrets
 	$(eval export KAMATERA_API_SECRET=$(shell sops -d kamatera.yaml 2>/dev/null | yq -r '.api_secret'))
 endef
 
+# State file management (encrypted with age)
+STATE_FILE=terraform/terraform.tfstate
+STATE_ENC=terraform/terraform.tfstate.age
+
+state-pull:
+	@if [ -f $(STATE_ENC) ]; then \
+		age -d -i $(AGE_KEY_FILE) $(STATE_ENC) > $(STATE_FILE); \
+		echo "State decrypted from $(STATE_ENC)"; \
+	fi
+
+state-push:
+	@if [ -f $(STATE_FILE) ]; then \
+		age -r $(AGE_PUBKEY) -o $(STATE_ENC) $(STATE_FILE); \
+		echo "State encrypted to $(STATE_ENC)"; \
+	fi
+
 # Terraform commands
-init:
+init: state-pull
 	cd terraform && terraform init
 
-plan:
+plan: state-pull
 	$(call load_secrets)
 	cd terraform && terraform plan
 
-apply:
+apply: state-pull
 	$(call load_secrets)
 	cd terraform && terraform apply
+	@$(MAKE) state-push
 
-destroy:
+destroy: state-pull
 	$(call load_secrets)
 	cd terraform && terraform destroy
+	@$(MAKE) state-push
 
 # Get instance IP
 ip:
@@ -73,6 +95,10 @@ help:
 	@echo "  make destroy       - Destroy infrastructure"
 	@echo "  make ip            - Show instance public IP"
 	@echo "  make ssh           - SSH to instance"
+	@echo ""
+	@echo "State (auto-managed, but can run manually):"
+	@echo "  make state-pull    - Decrypt state from git"
+	@echo "  make state-push    - Encrypt state to git"
 	@echo ""
 	@echo "Secrets:"
 	@echo "  make secrets-edit  - Edit encrypted credentials"
