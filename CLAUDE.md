@@ -27,10 +27,10 @@ Monorepo for xdeca infrastructure and self-hosted services.
 
 ## Cloud Providers
 
-| Provider | Status | Cost |
-|----------|--------|------|
-| [oci-vps](./oci-vps/) | Ready | Free tier |
-| [kamatera-vps](./kamatera-vps/) | Ready | ~$12/mo |
+| Provider | Status | IP | Cost |
+|----------|--------|-----|------|
+| [oci-vps](./oci-vps/) | Pending | - | Free tier |
+| [kamatera-vps](./kamatera-vps/) | **Active** | `103.125.218.210` | ~$12/mo |
 
 ## Secrets Management
 
@@ -108,6 +108,42 @@ ssh pi   # Via Tailscale
 ## Keep-Alive
 
 Cloud-init installs a cron job that runs every 6 hours to prevent Oracle from reclaiming idle instances.
+
+---
+
+# kamatera-vps
+
+Kamatera cloud VPS - paid fallback when OCI free tier is unavailable.
+
+## Specs
+
+- **CPU**: 2 cores (x86)
+- **RAM**: 4GB
+- **Storage**: 50GB
+- **Region**: Sydney, Australia
+- **IP**: `103.125.218.210`
+
+## Quick Start
+
+```bash
+cd kamatera-vps
+make init              # Initialize Terraform
+make apply             # Create instance
+make ssh               # Connect to VPS
+make deploy            # Deploy all services
+```
+
+## Provisioning from Pi
+
+If your IP keeps changing (mobile hotspot), run terraform from the Pi:
+
+```bash
+ssh pi
+cd ~/xdeca-infra/kamatera-vps
+make apply
+```
+
+The Pi has terraform, sops, and age installed, plus the age key for decrypting secrets.
 
 ---
 
