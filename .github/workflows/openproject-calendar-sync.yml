@@ -1,9 +1,8 @@
 name: OpenProject → Google Calendar Sync
 
 on:
-  schedule:
-    # Run every 15 minutes
-    - cron: "*/15 * * * *"
+  repository_dispatch:
+    types: [openproject_milestone_changed]
   workflow_dispatch: # Allow manual trigger
 
 jobs:
