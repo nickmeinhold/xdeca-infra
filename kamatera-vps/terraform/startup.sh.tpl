@@ -9,6 +9,17 @@ apt-get upgrade -y
 # Install packages
 apt-get install -y podman podman-compose git curl htop netcat-openbsd ufw
 
+# Allow rootless containers to bind to low ports (for Caddy on 80/443)
+echo 'net.ipv4.ip_unprivileged_port_start=80' >> /etc/sysctl.conf
+sysctl -p
+
+# Create 2GB swap file
+fallocate -l 2G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
 # Create ubuntu user if not exists
 id ubuntu &>/dev/null || useradd -m -s /bin/bash -G sudo ubuntu
 echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu
