@@ -1,5 +1,13 @@
 # Example secrets file (this file is NOT encrypted)
-# Copy to openproject.yaml and encrypt with: sops -e -i openproject.yaml
+# Copy to secrets.yaml and encrypt with: sops -e -i secrets.yaml
 
 hostname: openproject.example.com
 secret_key_base: your-64-char-hex-secret-here
+
+# SMTP (use same settings as Discourse/Mailgun)
+smtp_address: smtp.mailgun.org
+smtp_port: "587"
+smtp_user: postmaster@mg.example.com
+smtp_password: your-smtp-password
+smtp_domain: example.com
+mail_from: openproject@example.com

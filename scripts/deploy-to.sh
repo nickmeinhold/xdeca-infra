@@ -24,7 +24,14 @@ decrypt_secrets() {
     echo "Decrypting secrets..."
 
     if [ -f "$REPO_ROOT/openproject/secrets.yaml" ]; then
-        sops -d "$REPO_ROOT/openproject/secrets.yaml" | yq -r '"OPENPROJECT_HOSTNAME=\(.hostname)\nOPENPROJECT_SECRET_KEY_BASE=\(.secret_key_base)"' > "$REPO_ROOT/openproject/.env"
+        sops -d "$REPO_ROOT/openproject/secrets.yaml" | yq -r '"OPENPROJECT_HOSTNAME=\(.hostname)
+OPENPROJECT_SECRET_KEY_BASE=\(.secret_key_base)
+OPENPROJECT_SMTP_ADDRESS=\(.smtp_address)
+OPENPROJECT_SMTP_PORT=\(.smtp_port)
+OPENPROJECT_SMTP_USER=\(.smtp_user)
+OPENPROJECT_SMTP_PASSWORD=\(.smtp_password)
+OPENPROJECT_SMTP_DOMAIN=\(.smtp_domain)
+OPENPROJECT_MAIL_FROM=\(.mail_from)"' > "$REPO_ROOT/openproject/.env"
     fi
 
     if [ -f "$REPO_ROOT/twenty/secrets.yaml" ]; then
