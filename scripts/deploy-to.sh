@@ -5,6 +5,9 @@
 
 set -e
 
+# SOPS age key location
+export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+
 if [ -z "$1" ]; then
   echo "Usage: $0 <ip> [service]"
   echo "  ip: VPS IP address or hostname"
