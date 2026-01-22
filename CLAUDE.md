@@ -46,7 +46,7 @@ Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
 |----------|--------|-----|------|
 | [oci-vps](./oci-vps/) | Pending | - | Free tier |
 | [kamatera-vps](./kamatera-vps/) | **Active** | `103.125.218.210` | ~$12/mo |
-| [cloudflare](./cloudflare/) | **Active** | - | Free tier |
+| [cloudflare](./cloudflare/) | Unused | - | Free tier |
 
 ## Secrets Management
 
@@ -68,23 +68,11 @@ Terraform state is also encrypted (`*.tfstate.age`) and committed to git.
 
 # cloudflare
 
-Cloudflare Workers managed via Terraform.
-
-## Workers
-
-| Worker | URL | Purpose |
-|--------|-----|---------|
-| openproject-calendar-webhook | `openproject-calendar-webhook.nick-meinhold.workers.dev` | OpenProject → GitHub Actions |
-| gcal-calendar-webhook | `gcal-calendar-webhook.nick-meinhold.workers.dev` | Google Calendar → GitHub Actions |
-
-## Quick Start
+Cloudflare Terraform configuration. Currently unused - calendar sync moved to VPS.
 
 ```bash
 cd cloudflare
-make init
-make plan
-make apply
-make webhook-url  # Show full URL with token
+make destroy  # Remove old workers from Cloudflare
 ```
 
 ---
