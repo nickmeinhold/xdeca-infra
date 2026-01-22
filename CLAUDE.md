@@ -29,7 +29,22 @@ Monorepo for xdeca infrastructure and self-hosted services.
 
 | Integration | Trigger | Action |
 |-------------|---------|--------|
-| OpenProject → Google Calendar | Milestone change | Syncs to calendar via GitHub Actions |
+| OpenProject ↔ Google Calendar | Bidirectional | Milestones sync both ways via GitHub Actions |
+
+### Calendar Sync Architecture
+
+```
+OpenProject ──webhook──▶ Cloudflare Worker ──dispatch──▶ GitHub Actions ──▶ Google Calendar
+                                                           (sync.ts)
+
+Google Calendar ──push──▶ Cloudflare Worker ──dispatch──▶ GitHub Actions ──▶ OpenProject
+                              │                          (reverse-sync.ts)
+                         KV (debounce)
+```
+
+- **Forward sync**: OpenProject milestone changes trigger webhook → updates Calendar
+- **Reverse sync**: Calendar date changes trigger push notification → updates OpenProject
+- **Loop prevention**: Extended properties track sync source to prevent infinite loops
 
 ## Cloud Providers
 
@@ -65,7 +80,8 @@ Cloudflare Workers managed via Terraform.
 
 | Worker | URL | Purpose |
 |--------|-----|---------|
-| openproject-calendar-webhook | `openproject-calendar-webhook.nick-meinhold.workers.dev` | Webhook → GitHub Actions |
+| openproject-calendar-webhook | `openproject-calendar-webhook.nick-meinhold.workers.dev` | OpenProject → GitHub Actions |
+| gcal-calendar-webhook | `gcal-calendar-webhook.nick-meinhold.workers.dev` | Google Calendar → GitHub Actions |
 
 ## Quick Start
 
@@ -75,13 +91,6 @@ make init
 make plan
 make apply
 make webhook-url  # Show full URL with token
-```
-
-## Architecture
-
-```
-OpenProject → Cloudflare Worker → GitHub Actions → Google Calendar
-   (webhook)                      (repository_dispatch)    (sync)
 ```
 
 ---
@@ -158,7 +167,7 @@ Internet → Caddy (443/80) → OpenProject (8080)
 Project management. Uses internal PostgreSQL.
 
 - **Default login**: admin / admin
-- **Calendar sync**: Milestones sync to Google Calendar (reactive via webhook)
+- **Calendar sync**: Bidirectional sync with Google Calendar (milestones only)
 
 ---
 
