@@ -7,3 +7,6 @@
 
 # Terraform provider cache (large, reproducible via .terraform.lock.hcl)
 **/.terraform/
+
+# Generated .env files (created from secrets.yaml during deploy)
+**/.env
