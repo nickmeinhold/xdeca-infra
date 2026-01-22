@@ -1,17 +1,9 @@
 # OS
 .DS_Store
-*.swp
 
 # Editor
 .idea/
 .vscode/
 
-# Unencrypted env files (never commit)
-.env
-*.env
-**/.env
-
-# Terraform - only ignore large/unencrypted files
-**/.terraform/          # Provider cache (large, reproducible)
-**/terraform.tfstate    # Unencrypted state (use .age version)
-**/terraform.tfstate.backup
+# Terraform provider cache (large, reproducible via .terraform.lock.hcl)
+**/.terraform/

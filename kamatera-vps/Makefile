@@ -23,16 +23,19 @@ state-pull:
 state-push:
 	@if [ -f $(STATE_FILE) ]; then \
 		age -r $(AGE_PUBKEY) -o $(STATE_ENC) $(STATE_FILE); \
-		echo "State encrypted to $(STATE_ENC)"; \
+		rm -f $(STATE_FILE) $(STATE_FILE).backup; \
+		echo "State encrypted and cleaned up"; \
 	fi
 
 # Terraform commands
 init: state-pull
 	cd terraform && terraform init
+	@rm -f $(STATE_FILE) $(STATE_FILE).backup
 
 plan: state-pull
 	$(call load_secrets)
 	cd terraform && terraform plan
+	@rm -f $(STATE_FILE) $(STATE_FILE).backup
 
 apply: state-pull
 	$(call load_secrets)
