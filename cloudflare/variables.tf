@@ -15,3 +15,9 @@ variable "webhook_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "gcal_webhook_secret" {
+  description = "Shared secret for verifying Google Calendar webhook requests"
+  type        = string
+  sensitive   = true
+}

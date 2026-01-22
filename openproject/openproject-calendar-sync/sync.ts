@@ -1,10 +1,16 @@
 import { google } from "googleapis";
+import { createHash } from "crypto";
 
 // Configuration from environment
 const OPENPROJECT_URL = process.env.OPENPROJECT_URL!;
 const OPENPROJECT_API_KEY = process.env.OPENPROJECT_API_KEY!;
 const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID!;
 const GOOGLE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON!;
+
+// Generate a hash of event content for change detection
+function generateEventHash(date: string, summary: string): string {
+  return createHash("md5").update(`${date}:${summary}`).digest("hex").slice(0, 16);
+}
 
 interface WorkPackage {
   id: number;
@@ -86,8 +92,11 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
     const endDatePlusOne = new Date(endDate);
     endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
 
+    const eventSummary = `🎯 [${wp._links.project.title}] ${wp.subject}`;
+    const contentHash = generateEventHash(startDate, eventSummary);
+
     const event = {
-      summary: `🎯 [${wp._links.project.title}] ${wp.subject}`,
+      summary: eventSummary,
       description: [
         wp.description?.raw || "",
         "",
@@ -97,6 +106,13 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
       start: { date: startDate },
       end: { date: endDatePlusOne.toISOString().split("T")[0] },
       transparency: "transparent", // Don't block time
+      extendedProperties: {
+        private: {
+          syncSource: "openproject",
+          contentHash: contentHash,
+          workPackageId: String(wp.id),
+        },
+      },
     };
 
     try {

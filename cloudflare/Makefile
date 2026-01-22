@@ -10,6 +10,7 @@ define load_secrets
 	$(eval export TF_VAR_cloudflare_api_token=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | yq -r '.cloudflare_api_token'))
 	$(eval export TF_VAR_github_token=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | yq -r '.github_token'))
 	$(eval export TF_VAR_webhook_secret=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | yq -r '.webhook_secret'))
+	$(eval export TF_VAR_gcal_webhook_secret=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | yq -r '.gcal_webhook_secret'))
 endef
 
 # State file management (encrypted with age)

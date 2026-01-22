@@ -4,7 +4,9 @@
   "description": "Sync OpenProject work packages to Google Calendar",
   "type": "module",
   "scripts": {
-    "sync": "tsx sync.ts"
+    "sync": "tsx sync.ts",
+    "reverse-sync": "tsx reverse-sync.ts",
+    "watch-setup": "tsx watch-setup.ts"
   },
   "dependencies": {
     "googleapis": "^144.0.0"

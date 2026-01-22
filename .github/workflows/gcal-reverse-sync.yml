@@ -1,0 +1,33 @@
+name: Google Calendar -> OpenProject Reverse Sync
+
+on:
+  repository_dispatch:
+    types: [gcal_event_changed]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  reverse-sync:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: openproject/openproject-calendar-sync
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: openproject/openproject-calendar-sync/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reverse sync from Google Calendar
+        env:
+          OPENPROJECT_URL: ${{ secrets.OPENPROJECT_URL }}
+          OPENPROJECT_API_KEY: ${{ secrets.OPENPROJECT_API_KEY }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: npm run reverse-sync
