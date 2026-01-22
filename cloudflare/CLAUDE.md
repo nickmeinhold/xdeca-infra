@@ -1,43 +1,35 @@
 # Cloudflare Workers
 
-Terraform-managed Cloudflare Workers for xdeca integrations.
+Terraform-managed Cloudflare Workers.
 
 ## Workers
 
-| Worker | URL | Purpose |
-|--------|-----|---------|
-| openproject-calendar-webhook | `*.nick-meinhold.workers.dev` | Receives OpenProject webhooks, triggers GitHub Actions |
+| Worker | Purpose |
+|--------|---------|
+| `openproject-calendar-webhook` | OpenProject webhook → GitHub Actions |
 
-## Quick Start
+**URL**: `https://openproject-calendar-webhook.nick-meinhold.workers.dev`
+
+## Commands
 
 ```bash
-cd cloudflare
 make init          # Initialize Terraform
 make plan          # Preview changes
-make apply         # Deploy changes
+make apply         # Deploy
+make webhook-url   # Show webhook URL with token
 ```
-
-## Secrets
-
-Secrets are SOPS-encrypted in `secrets.yaml`:
-
-| Secret | Description |
-|--------|-------------|
-| `cloudflare_api_token` | Cloudflare API token with Workers edit permission |
-| `github_token` | GitHub PAT with `repo` scope for repository_dispatch |
-| `webhook_secret` | Shared secret for verifying OpenProject webhooks |
 
 ## Architecture
 
 ```
 OpenProject → Cloudflare Worker → GitHub Actions → Google Calendar
-     (webhook)    (webhook-worker)   (repository_dispatch)    (sync)
+   (webhook)   (this worker)      (repository_dispatch)    (sync)
 ```
 
-## Webhook URL
+## Secrets
 
-```bash
-make webhook-url   # Shows full URL with token
-```
+SOPS-encrypted in `secrets.yaml`:
 
-Configure in OpenProject: **Administration → Webhooks**
+- `cloudflare_api_token` - Cloudflare API token
+- `github_token` - GitHub PAT with `repo` scope
+- `webhook_secret` - Shared secret for webhook auth

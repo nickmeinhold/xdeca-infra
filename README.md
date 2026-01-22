@@ -1,6 +1,6 @@
 # xdeca-infra
 
-Infrastructure monorepo for self-hosted services on Oracle Cloud free tier.
+Infrastructure monorepo for self-hosted services.
 
 ## Services
 
@@ -11,12 +11,19 @@ Infrastructure monorepo for self-hosted services on Oracle Cloud free tier.
 | [Twenty](./twenty/) | CRM (Salesforce alternative) | 3000 |
 | [Discourse](./discourse/) | Forum / community platform | 8888 |
 
-## Cloud Providers
+## Infrastructure
 
-| Provider | Directory | Status |
-|----------|-----------|--------|
-| Oracle Cloud | [oci-vps](./oci-vps/) | Ready (free tier) |
-| Kamatera | [kamatera-vps](./kamatera-vps/) | Ready (~$12/mo) |
+| Provider | Directory | Status | Cost |
+|----------|-----------|--------|------|
+| Oracle Cloud | [oci-vps](./oci-vps/) | Pending | Free |
+| Kamatera | [kamatera-vps](./kamatera-vps/) | **Active** | ~$12/mo |
+| Cloudflare Workers | [cloudflare](./cloudflare/) | **Active** | Free |
+
+## Integrations
+
+| From | To | Trigger |
+|------|----|---------|
+| OpenProject | Google Calendar | Milestone webhook → GitHub Actions |
 
 ## Architecture
 
@@ -24,6 +31,8 @@ Infrastructure monorepo for self-hosted services on Oracle Cloud free tier.
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Twenty (3000)
                           → Discourse (8888)
+
+OpenProject → Cloudflare Worker → GitHub Actions → Google Calendar
 ```
 
 ## Quick Start
@@ -34,36 +43,25 @@ Internet → Caddy (443/80) → OpenProject (8080)
 brew install terraform sops age yq
 ```
 
-### 1. Set up secrets encryption
+### 1. Set up encryption key
 
 ```bash
-# Create age key
 mkdir -p ~/.config/sops/age
 age-keygen -o ~/.config/sops/age/keys.txt
-
-# Copy the public key (age1...) to .sops.yaml
+# Add public key to .sops.yaml
 ```
 
-### 2. Create encrypted secrets
+This is the **only unencrypted secret**. Everything else (secrets, terraform state) is encrypted and committed to git.
+
+### 2. Provision infrastructure
 
 ```bash
-# Copy example and encrypt
-cp openproject/openproject.yaml.example openproject/secrets.yaml
-# Edit with real values, then encrypt
-sops -e -i openproject/secrets.yaml
-
-# Repeat for twenty and discourse
-```
-
-### 3. Provision infrastructure
-
-```bash
-cd oci-vps
+cd kamatera-vps   # or oci-vps
 make init
-make apply  # May need retries for "Out of capacity"
+make apply
 ```
 
-### 4. Deploy services
+### 3. Deploy services
 
 ```bash
 make deploy
@@ -74,71 +72,36 @@ make deploy
 ```
 .
 ├── caddy/                  # Reverse proxy config
+├── cloudflare/             # Cloudflare Workers (Terraform)
+│   ├── main.tf
+│   ├── secrets.yaml        # SOPS-encrypted
+│   └── terraform.tfstate.age
 ├── discourse/              # Forum
 ├── openproject/            # Project management
+│   └── openproject-calendar-sync/  # Calendar integration
 ├── twenty/                 # CRM
 ├── oci-vps/                # Oracle Cloud provisioning
-│   ├── terraform/
-│   └── Makefile
-├── kamatera-vps/           # Kamatera VPS (fallback)
+│   └── terraform/
+├── kamatera-vps/           # Kamatera VPS
+│   └── terraform/
 ├── scripts/                # Shared scripts
-│   ├── backup.sh           # Backup all services
-│   ├── restore.sh          # Restore from backup
-│   └── setup-backups.sh    # Configure backup infra
-├── docs/                   # Documentation
-│   └── backups.md
-├── .githooks/              # Git hooks (pre-commit)
+├── .github/workflows/      # GitHub Actions
+│   └── openproject-calendar-sync.yml
 └── .sops.yaml              # SOPS encryption config
 ```
 
 ## Secrets Management
 
-Secrets are encrypted with [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age).
+All secrets are encrypted with [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age).
 
 ```bash
-# Edit encrypted secrets (decrypts in place, re-encrypts on save)
+# Edit encrypted secrets
 sops openproject/secrets.yaml
 
-# Encrypt a new file
-sops -e -i myfile.yaml
-
-# Decrypt to stdout
-sops -d myfile.yaml
+# Terraform state is also encrypted
+# Makefiles handle encrypt/decrypt automatically
+make apply   # decrypts state, runs terraform, re-encrypts, deletes plaintext
 ```
-
-A pre-commit hook prevents accidentally committing unencrypted secrets.
-
-### Enable the hook
-
-```bash
-git config core.hooksPath .githooks
-```
-
-## OCI Free Tier Specs
-
-- **Shape**: VM.Standard.A1.Flex (ARM)
-- **OCPUs**: 4
-- **RAM**: 24GB
-- **Storage**: 50GB
-- **Cost**: $0/month
-
-## Backups
-
-All services backup daily to Oracle Object Storage (Archive tier, free up to 10GB).
-
-| Service | Data | Schedule | Retention |
-|---------|------|----------|-----------|
-| OpenProject | PostgreSQL | Daily 4 AM | 7 days |
-| Twenty | PostgreSQL + files | Daily 4 AM | 7 days |
-| Discourse | Built-in backup | Daily 3 AM | 7 days |
-
-Setup after provisioning:
-```bash
-ssh ubuntu@<vps-ip>
-./scripts/setup-backups.sh
-```
-
-See [docs/backups.md](./docs/backups.md) for full backup & restore documentation.
 
 ## License
 
