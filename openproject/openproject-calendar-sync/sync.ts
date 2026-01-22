@@ -139,8 +139,11 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
           calendarId: GOOGLE_CALENDAR_ID,
           eventId,
         });
-      } catch {
-        // Ignore delete errors
+        console.log(`Deleted all-day event: ${eventId}`);
+        // Wait for delete to propagate
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error(`Failed to delete ${eventId}:`, error);
       }
     }
 
