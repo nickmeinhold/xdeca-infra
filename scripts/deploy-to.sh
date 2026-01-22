@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy services to any VPS
 # Usage: ./scripts/deploy-to.sh <ip> [service]
-# Services: all, caddy, openproject, twenty, discourse, scripts
+# Services: all, caddy, openproject, twenty, discourse, calendar-sync, scripts
 
 set -e
 
@@ -91,6 +91,68 @@ deploy_discourse() {
     echo "To bootstrap: ssh $REMOTE 'cd ~/apps/discourse && ./launcher bootstrap app'"
 }
 
+deploy_calendar_sync() {
+    echo "Deploying calendar-sync..."
+    local SYNC_DIR="$REPO_ROOT/openproject/openproject-calendar-sync"
+    local REMOTE_DIR="~/apps/calendar-sync"
+
+    # Sync files (exclude node_modules, will npm install on remote)
+    ssh $REMOTE "mkdir -p $REMOTE_DIR"
+    rsync -avz --exclude 'node_modules' "$SYNC_DIR/" $REMOTE:$REMOTE_DIR/
+
+    # Copy secrets if they exist locally
+    if [ -f "$SYNC_DIR/secrets.yaml" ]; then
+        echo "Copying encrypted secrets.yaml..."
+        scp "$SYNC_DIR/secrets.yaml" $REMOTE:$REMOTE_DIR/secrets.yaml
+    else
+        echo "WARNING: No secrets.yaml found. You'll need to create it on the VPS:"
+        echo "  ssh $REMOTE"
+        echo "  cd $REMOTE_DIR"
+        echo "  cp secrets.yaml.example secrets.yaml"
+        echo "  # Edit with your values, then: sops -e -i secrets.yaml"
+    fi
+
+    # Install npm dependencies
+    echo "Installing npm dependencies..."
+    ssh $REMOTE "cd $REMOTE_DIR && npm install"
+
+    # Generate and install systemd service
+    echo "Installing systemd service..."
+    cat > /tmp/calendar-sync.service << 'EOF'
+[Unit]
+Description=OpenProject Calendar Sync Webhook Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/apps/calendar-sync
+ExecStart=/usr/bin/make run
+Restart=always
+RestartSec=10
+Environment=HOME=/home/ubuntu
+Environment=SOPS_AGE_KEY_FILE=/home/ubuntu/.config/sops/age/keys.txt
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    scp /tmp/calendar-sync.service $REMOTE:/tmp/calendar-sync.service
+    ssh $REMOTE "sudo mv /tmp/calendar-sync.service /etc/systemd/system/calendar-sync.service"
+    ssh $REMOTE "sudo systemctl daemon-reload"
+    rm /tmp/calendar-sync.service
+
+    # Check if secrets exist before starting
+    if ssh $REMOTE "test -f $REMOTE_DIR/secrets.yaml"; then
+        echo "Enabling and starting calendar-sync service..."
+        ssh $REMOTE "sudo systemctl enable calendar-sync"
+        ssh $REMOTE "sudo systemctl restart calendar-sync"
+        echo "Calendar-sync service started. Check status: ssh $REMOTE 'sudo systemctl status calendar-sync'"
+    else
+        echo "Secrets not configured. Service installed but not started."
+        echo "After configuring secrets, run: sudo systemctl enable --now calendar-sync"
+    fi
+}
+
 decrypt_secrets
 
 case $SERVICE in
@@ -100,6 +162,7 @@ case $SERVICE in
         deploy_service openproject
         deploy_service twenty
         deploy_discourse
+        deploy_calendar_sync
         ;;
     scripts)
         deploy_scripts
@@ -110,9 +173,12 @@ case $SERVICE in
     discourse)
         deploy_discourse
         ;;
+    calendar-sync)
+        deploy_calendar_sync
+        ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 <ip> [all|caddy|openproject|twenty|discourse|scripts]"
+        echo "Usage: $0 <ip> [all|caddy|openproject|twenty|discourse|calendar-sync|scripts]"
         exit 1
         ;;
 esac

@@ -107,5 +107,6 @@ help:
 	@echo "  make secrets-edit  - Edit encrypted credentials"
 	@echo ""
 	@echo "Deploy:"
-	@echo "  make deploy        - Deploy all services"
-	@echo "  make deploy-caddy  - Deploy Caddy only"
+	@echo "  make deploy              - Deploy all services"
+	@echo "  make deploy-caddy        - Deploy Caddy only"
+	@echo "  make deploy-calendar-sync - Deploy calendar sync only"

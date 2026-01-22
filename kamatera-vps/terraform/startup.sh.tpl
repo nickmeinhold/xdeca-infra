@@ -7,7 +7,21 @@ apt-get update
 apt-get upgrade -y
 
 # Install packages
-apt-get install -y podman podman-compose git curl htop netcat-openbsd ufw
+apt-get install -y podman podman-compose git curl htop netcat-openbsd ufw make
+
+# Install Node.js 20 (for calendar-sync webhook server)
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+
+# Install SOPS and age for secrets decryption
+curl -LO https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64
+mv sops-v3.9.4.linux.amd64 /usr/local/bin/sops
+chmod +x /usr/local/bin/sops
+curl -LO https://github.com/FiloSottile/age/releases/download/v1.2.0/age-v1.2.0-linux-amd64.tar.gz
+tar -xzf age-v1.2.0-linux-amd64.tar.gz
+mv age/age age/age-keygen /usr/local/bin/
+rm -rf age age-v1.2.0-linux-amd64.tar.gz
+apt-get install -y yq
 
 # Allow rootless containers to bind to low ports (for Caddy on 80/443)
 echo 'net.ipv4.ip_unprivileged_port_start=80' >> /etc/sysctl.conf
@@ -71,10 +85,11 @@ cat > /home/ubuntu/README.md << 'README'
 
 ## Directory Structure
 ~/apps/
-  caddy/       - Reverse proxy
-  openproject/ - Project management
-  twenty/      - CRM
-  discourse/   - Forum
+  caddy/         - Reverse proxy
+  openproject/   - Project management
+  twenty/        - CRM
+  discourse/     - Forum
+  calendar-sync/ - OpenProject ↔ Google Calendar sync
 
 ## Commands
 cd ~/apps/<service>

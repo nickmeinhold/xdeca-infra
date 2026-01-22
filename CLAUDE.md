@@ -40,7 +40,7 @@ Google Calendar ──push──▶ VPS ──▶ OpenProject
 
 Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
 
-**Status**: Partially deployed - needs secrets configured. See `openproject/CLAUDE.md`.
+**Status**: Automated via IaC. First deploy requires secrets setup. See `openproject/CLAUDE.md`.
 
 ## Cloud Providers
 

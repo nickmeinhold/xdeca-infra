@@ -32,31 +32,38 @@ Self-hosted on the VPS. No Cloudflare Workers or GitHub Actions needed.
 | `openproject-calendar-sync/secrets.yaml` | SOPS-encrypted secrets |
 | `openproject-calendar-sync/calendar-sync.service` | Systemd service file |
 
-### Deployment Status
+### Deployment
 
-**Partially deployed on VPS (103.125.218.210)**:
-- [x] Node.js 20 installed
-- [x] Repo cloned to ~/xdeca-infra
-- [x] npm dependencies installed
-- [x] SOPS, age, yq installed
-- [x] Age key copied
-- [ ] secrets.yaml created and encrypted
-- [ ] systemd service installed
-- [ ] Caddy reverse proxy configured
+Calendar sync is deployed automatically via `make deploy` or `make deploy-calendar-sync`.
 
-### Completing Deployment
+**Automated by IaC:**
+- Node.js 20, SOPS, age, yq (via Terraform provisioning)
+- npm dependencies (via deploy script)
+- systemd service installation (via deploy script)
+- Caddy reverse proxy route (via deploy script)
+
+**Manual (one-time setup):**
+- Create and encrypt `secrets.yaml`
+- Copy age key to VPS
+- Set up Google Calendar watch
+
+### First-Time Secrets Setup
 
 ```bash
 # SSH to VPS
 ssh ubuntu@103.125.218.210
 
+# Copy age key (one-time)
+mkdir -p ~/.config/sops/age
+# Copy your age key from local machine to ~/.config/sops/age/keys.txt
+
 # Create secrets file
-cd ~/xdeca-infra/openproject/openproject-calendar-sync
+cd ~/apps/calendar-sync
 cp secrets.yaml.example secrets.yaml
 
 # Edit with your values:
-# - webhook_secret: (from cloudflare/secrets.yaml)
-# - gcal_webhook_secret: (from cloudflare/secrets.yaml)
+# - webhook_secret: generate with: openssl rand -hex 32
+# - gcal_webhook_secret: generate with: openssl rand -hex 32
 # - openproject_url: https://openproject.enspyr.co
 # - openproject_api_key: (from OpenProject admin → API)
 # - google_calendar_id: (from Google Calendar settings)
@@ -65,18 +72,8 @@ cp secrets.yaml.example secrets.yaml
 # Encrypt secrets
 sops -e -i secrets.yaml
 
-# Install systemd service
-sudo cp calendar-sync.service /etc/systemd/system/
-sudo systemctl daemon-reload
+# Start the service
 sudo systemctl enable --now calendar-sync
-
-# Add Caddy route
-sudo nano /etc/caddy/Caddyfile
-# Add:
-# calendar-sync.enspyr.co {
-#     reverse_proxy localhost:3001
-# }
-sudo systemctl reload caddy
 
 # Update OpenProject webhook URL to:
 # https://calendar-sync.enspyr.co/openproject?token=<WEBHOOK_SECRET>

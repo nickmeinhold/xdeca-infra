@@ -12,6 +12,7 @@ define load_secrets
 	$(eval export OPENPROJECT_API_KEY=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | grep '^openproject_api_key:' | cut -d' ' -f2))
 	$(eval export GOOGLE_CALENDAR_ID=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | grep '^google_calendar_id:' | cut -d' ' -f2))
 	$(eval export GOOGLE_SERVICE_ACCOUNT_JSON=$(shell SOPS_AGE_KEY_FILE=$(AGE_KEY_FILE) sops -d secrets.yaml 2>/dev/null | yq -r '.google_service_account_json'))
+	$(eval export GCAL_WEBHOOK_URL=https://calendar-sync.enspyr.co/gcal?token=$(GCAL_WEBHOOK_SECRET))
 endef
 
 install:
