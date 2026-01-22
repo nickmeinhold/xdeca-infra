@@ -9,6 +9,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── caddy/              # Reverse proxy (Caddy)
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── discourse/          # Forum (Discourse)
+├── dns/                # Namecheap DNS (Terraform)
 ├── openproject/        # Project management + calendar sync
 ├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
@@ -18,12 +19,13 @@ Monorepo for xdeca infrastructure and self-hosted services.
 
 ## Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Caddy | 80/443 | Reverse proxy, auto-TLS |
-| OpenProject | 8080 | Project management |
-| Twenty | 3000 | CRM |
-| Discourse | 8888 | Forum |
+| Service | Port | URL | Description |
+|---------|------|-----|-------------|
+| Caddy | 80/443 | - | Reverse proxy, auto-TLS |
+| OpenProject | 8080 | openproject.enspyr.co | Project management |
+| Twenty | 3000 | twenty.enspyr.co | CRM |
+| Discourse | 8888 | discourse.enspyr.co | Forum |
+| Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
 
 ## Integrations
 
@@ -134,6 +136,20 @@ make deploy   # Deploy all services
 
 ---
 
+# dns
+
+Namecheap DNS records managed via Terraform.
+
+```bash
+cd dns
+make plan    # Preview changes
+make apply   # Apply (requires whitelisted IP - run from Pi)
+```
+
+**Note**: Namecheap API requires IP whitelisting. Run from Pi which is already whitelisted.
+
+---
+
 # caddy
 
 Reverse proxy with automatic HTTPS via Let's Encrypt.
@@ -142,6 +158,7 @@ Reverse proxy with automatic HTTPS via Let's Encrypt.
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Twenty (3000)
                           → Discourse (8888)
+                          → Calendar Sync (3001)
 ```
 
 ---

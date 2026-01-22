@@ -4,26 +4,22 @@ Infrastructure monorepo for self-hosted services.
 
 ## Services
 
-| Service | Description | Port |
-|---------|-------------|------|
-| [Caddy](./caddy/) | Reverse proxy with automatic HTTPS | 80/443 |
-| [OpenProject](./openproject/) | Project management | 8080 |
-| [Twenty](./twenty/) | CRM (Salesforce alternative) | 3000 |
-| [Discourse](./discourse/) | Forum / community platform | 8888 |
+| Service | Description | URL |
+|---------|-------------|-----|
+| [Caddy](./caddy/) | Reverse proxy with automatic HTTPS | - |
+| [OpenProject](./openproject/) | Project management | openproject.enspyr.co |
+| [Twenty](./twenty/) | CRM (Salesforce alternative) | twenty.enspyr.co |
+| [Discourse](./discourse/) | Forum / community platform | discourse.enspyr.co |
+| Calendar Sync | OpenProject ↔ Google Calendar | calendar-sync.enspyr.co |
 
 ## Infrastructure
 
 | Provider | Directory | Status | Cost |
 |----------|-----------|--------|------|
-| Oracle Cloud | [oci-vps](./oci-vps/) | Pending | Free |
 | Kamatera | [kamatera-vps](./kamatera-vps/) | **Active** | ~$12/mo |
-| Cloudflare Workers | [cloudflare](./cloudflare/) | **Active** | Free |
-
-## Integrations
-
-| From | To | Trigger |
-|------|----|---------|
-| OpenProject | Google Calendar | Milestone webhook → GitHub Actions |
+| Oracle Cloud | [oci-vps](./oci-vps/) | Pending | Free |
+| Namecheap DNS | [dns](./dns/) | **Active** | - |
+| Cloudflare Workers | [cloudflare](./cloudflare/) | Unused | - |
 
 ## Architecture
 
@@ -31,8 +27,10 @@ Infrastructure monorepo for self-hosted services.
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Twenty (3000)
                           → Discourse (8888)
+                          → Calendar Sync (3001)
 
-OpenProject → Cloudflare Worker → GitHub Actions → Google Calendar
+OpenProject ──webhook──▶ Calendar Sync ──▶ Google Calendar
+Google Calendar ──push──▶ Calendar Sync ──▶ OpenProject
 ```
 
 ## Quick Start
@@ -56,7 +54,7 @@ This is the **only unencrypted secret**. Everything else (secrets, terraform sta
 ### 2. Provision infrastructure
 
 ```bash
-cd kamatera-vps   # or oci-vps
+cd kamatera-vps
 make init
 make apply
 ```
@@ -64,7 +62,16 @@ make apply
 ### 3. Deploy services
 
 ```bash
-make deploy
+make deploy                 # All services
+make deploy-calendar-sync   # Just calendar sync
+```
+
+### 4. DNS (run from Pi - IP whitelisted)
+
+```bash
+ssh pi
+cd ~/xdeca-infra/dns
+make apply
 ```
 
 ## Repository Structure
@@ -72,21 +79,26 @@ make deploy
 ```
 .
 ├── caddy/                  # Reverse proxy config
-├── cloudflare/             # Cloudflare Workers (Terraform)
+├── dns/                    # Namecheap DNS (Terraform)
 │   ├── main.tf
-│   ├── secrets.yaml        # SOPS-encrypted
-│   └── terraform.tfstate.age
+│   └── secrets.yaml        # SOPS-encrypted
 ├── discourse/              # Forum
 ├── openproject/            # Project management
-│   └── openproject-calendar-sync/  # Calendar integration
+│   └── openproject-calendar-sync/
+│       ├── webhook-server.ts
+│       ├── sync.ts
+│       ├── reverse-sync.ts
+│       └── secrets.yaml    # SOPS-encrypted
 ├── twenty/                 # CRM
-├── oci-vps/                # Oracle Cloud provisioning
+├── kamatera-vps/           # Kamatera VPS (primary)
 │   └── terraform/
-├── kamatera-vps/           # Kamatera VPS
-│   └── terraform/
-├── scripts/                # Shared scripts
-├── .github/workflows/      # GitHub Actions
-│   └── openproject-calendar-sync.yml
+│       ├── main.tf
+│       ├── startup.sh.tpl
+│       └── terraform.tfstate.age
+├── oci-vps/                # Oracle Cloud (pending)
+├── cloudflare/             # Unused
+├── scripts/
+│   └── deploy-to.sh        # Deployment script
 └── .sops.yaml              # SOPS encryption config
 ```
 
@@ -100,7 +112,7 @@ sops openproject/secrets.yaml
 
 # Terraform state is also encrypted
 # Makefiles handle encrypt/decrypt automatically
-make apply   # decrypts state, runs terraform, re-encrypts, deletes plaintext
+make apply   # decrypts state, runs terraform, re-encrypts
 ```
 
 ## License
