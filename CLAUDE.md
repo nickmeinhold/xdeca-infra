@@ -29,22 +29,16 @@ Monorepo for xdeca infrastructure and self-hosted services.
 
 | Integration | Trigger | Action |
 |-------------|---------|--------|
-| OpenProject ↔ Google Calendar | Bidirectional | Milestones sync both ways via GitHub Actions |
+| OpenProject ↔ Google Calendar | Bidirectional | Milestones sync via VPS webhook server |
 
 ### Calendar Sync Architecture
 
 ```
-OpenProject ──webhook──▶ Cloudflare Worker ──dispatch──▶ GitHub Actions ──▶ Google Calendar
-                                                           (sync.ts)
-
-Google Calendar ──push──▶ Cloudflare Worker ──dispatch──▶ GitHub Actions ──▶ OpenProject
-                              │                          (reverse-sync.ts)
-                         KV (debounce)
+OpenProject ──webhook──▶ VPS ──▶ Google Calendar
+Google Calendar ──push──▶ VPS ──▶ OpenProject
 ```
 
-- **Forward sync**: OpenProject milestone changes trigger webhook → updates Calendar
-- **Reverse sync**: Calendar date changes trigger push notification → updates OpenProject
-- **Loop prevention**: Extended properties track sync source to prevent infinite loops
+Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
 
 ## Cloud Providers
 

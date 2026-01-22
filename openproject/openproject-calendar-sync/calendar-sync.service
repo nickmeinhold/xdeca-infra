@@ -1,0 +1,15 @@
+[Unit]
+Description=OpenProject Calendar Sync Webhook Server
+After=network.target
+
+[Service]
+Type=simple
+User=nick
+WorkingDirectory=/home/nick/xdeca-infra/openproject/openproject-calendar-sync
+ExecStart=/usr/bin/make run
+Restart=always
+RestartSec=10
+Environment=HOME=/home/nick
+
+[Install]
+WantedBy=multi-user.target

@@ -10,46 +10,64 @@ podman exec openproject_openproject_1 pg_dump -U postgres openproject > backup.s
 
 ## Google Calendar Sync
 
-Bidirectional sync between OpenProject milestones and Google Calendar.
+Bidirectional sync between OpenProject milestones and Google Calendar (12pm Melbourne time).
 
-### How It Works
+### Architecture
 
-**Forward sync (OpenProject → Calendar):**
-1. Milestone created/modified in OpenProject
-2. OpenProject webhook triggers Cloudflare Worker
-3. Worker dispatches `repository_dispatch` to GitHub Actions
-4. `openproject-calendar-sync.yml` runs `sync.ts`
-5. Calendar event created/updated with `🎯` prefix
+```
+OpenProject ──webhook──▶ VPS webhook server ──▶ sync.ts ──▶ Google Calendar
+Google Calendar ──push──▶ VPS webhook server ──▶ reverse-sync.ts ──▶ OpenProject
+```
 
-**Reverse sync (Calendar → OpenProject):**
-1. Calendar event date changed by user
-2. Google Calendar push notification triggers Cloudflare Worker
-3. Worker dispatches `gcal_event_changed` to GitHub Actions
-4. `gcal-reverse-sync.yml` runs `reverse-sync.ts`
-5. OpenProject milestone date updated via API
+Self-hosted on the VPS. No Cloudflare Workers or GitHub Actions needed.
 
 ### Files
 
 | File | Purpose |
 |------|---------|
+| `openproject-calendar-sync/webhook-server.ts` | Webhook receiver (runs on VPS) |
 | `openproject-calendar-sync/sync.ts` | Forward sync script |
 | `openproject-calendar-sync/reverse-sync.ts` | Reverse sync script |
 | `openproject-calendar-sync/watch-setup.ts` | Set up Calendar push notifications |
-| `openproject-calendar-sync/webhook-worker/gcal-worker.js` | Cloudflare Worker for Calendar webhooks |
+| `openproject-calendar-sync/secrets.yaml` | SOPS-encrypted secrets |
+| `openproject-calendar-sync/calendar-sync.service` | Systemd service file |
 
-### Loop Prevention
-
-Events have `extendedProperties.private.syncSource = "openproject"` to identify sync-created events. Forward sync skips updating events where the Calendar date differs (user modified it, pending reverse sync).
-
-### Manual Triggers
+### Deployment (VPS)
 
 ```bash
-# Forward sync
-gh workflow run openproject-calendar-sync.yml
+# Install
+cd ~/xdeca-infra/openproject/openproject-calendar-sync
+make install
 
-# Reverse sync
-gh workflow run gcal-reverse-sync.yml
+# Set up secrets (one-time)
+make secrets-create
+# Edit secrets.yaml with credentials
+sops -e -i secrets.yaml
+
+# Install systemd service
+sudo cp calendar-sync.service /etc/systemd/system/
+sudo systemctl enable calendar-sync
+sudo systemctl start calendar-sync
+
+# Add Caddy routes (in Caddyfile)
+# calendar-sync.yourdomain.com {
+#     reverse_proxy localhost:3001
+# }
 ```
+
+### Manual Commands
+
+```bash
+make sync           # Forward sync
+make reverse-sync   # Reverse sync
+make run            # Run webhook server locally
+```
+
+### Webhook URLs
+
+Configure in OpenProject and Google Calendar watch:
+- OpenProject: `https://calendar-sync.yourdomain.com/openproject?token=<WEBHOOK_SECRET>`
+- Google Calendar: `https://calendar-sync.yourdomain.com/gcal?token=<GCAL_WEBHOOK_SECRET>`
 
 ## MCP Server Integration (Future)
 
