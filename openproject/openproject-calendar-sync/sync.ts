@@ -7,7 +7,11 @@ const OPENPROJECT_API_KEY = process.env.OPENPROJECT_API_KEY!;
 const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID!;
 const GOOGLE_SERVICE_ACCOUNT_JSON = process.env.GOOGLE_SERVICE_ACCOUNT_JSON!;
 
-// Generate a hash of event content for change detection
+// Default time for milestones (12:00 PM Melbourne)
+const DEFAULT_TIME = "12:00:00";
+const DEFAULT_TIMEZONE = "Australia/Melbourne";
+
+// Generate a hash of event content for change detection (date only, not time)
 function generateEventHash(date: string, summary: string): string {
   return createHash("md5").update(`${date}:${summary}`).digest("hex").slice(0, 16);
 }
@@ -85,15 +89,35 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
     const eventId = generateEventId(wp.id);
 
     // Use the date (milestones use `date` field, regular work packages use startDate/dueDate)
-    const startDate = wp.date || wp.startDate || wp.dueDate!;
-    const endDate = wp.date || wp.dueDate || wp.startDate!;
-
-    // Add one day to end date because Google Calendar end dates are exclusive
-    const endDatePlusOne = new Date(endDate);
-    endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+    const milestoneDate = wp.date || wp.startDate || wp.dueDate!;
 
     const eventSummary = `🎯 [${wp._links.project.title}] ${wp.subject}`;
-    const contentHash = generateEventHash(startDate, eventSummary);
+    const contentHash = generateEventHash(milestoneDate, eventSummary);
+
+    // Try to get existing event to preserve user-set time
+    let existingTime: string | null = null;
+    let existingEndTime: string | null = null;
+    try {
+      const existing = await calendar.events.get({
+        calendarId: GOOGLE_CALENDAR_ID,
+        eventId,
+      });
+      // Extract time from existing dateTime if present
+      if (existing.data.start?.dateTime) {
+        const match = existing.data.start.dateTime.match(/T(\d{2}:\d{2}:\d{2})/);
+        if (match) existingTime = match[1];
+      }
+      if (existing.data.end?.dateTime) {
+        const match = existing.data.end.dateTime.match(/T(\d{2}:\d{2}:\d{2})/);
+        if (match) existingEndTime = match[1];
+      }
+    } catch {
+      // Event doesn't exist yet, will use defaults
+    }
+
+    // Use existing time or default to 12:00 PM
+    const startTime = existingTime || DEFAULT_TIME;
+    const endTime = existingEndTime || "13:00:00"; // 1 hour duration by default
 
     const event = {
       summary: eventSummary,
@@ -103,8 +127,14 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
         `Type: ${wp._links.type.title}`,
         `OpenProject: ${OPENPROJECT_URL}/work_packages/${wp.id}`,
       ].join("\n"),
-      start: { date: startDate },
-      end: { date: endDatePlusOne.toISOString().split("T")[0] },
+      start: {
+        dateTime: `${milestoneDate}T${startTime}`,
+        timeZone: DEFAULT_TIMEZONE,
+      },
+      end: {
+        dateTime: `${milestoneDate}T${endTime}`,
+        timeZone: DEFAULT_TIMEZONE,
+      },
       transparency: "transparent", // Don't block time
       extendedProperties: {
         private: {
@@ -122,7 +152,7 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
         eventId,
         requestBody: event,
       });
-      console.log(`Updated: ${wp.subject}`);
+      console.log(`Updated: ${wp.subject} (${milestoneDate} ${startTime})`);
     } catch (error: unknown) {
       if (error && typeof error === "object" && "code" in error && error.code === 404) {
         // Event doesn't exist, create it
@@ -130,7 +160,7 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
           calendarId: GOOGLE_CALENDAR_ID,
           requestBody: { ...event, id: eventId },
         });
-        console.log(`Created: ${wp.subject}`);
+        console.log(`Created: ${wp.subject} (${milestoneDate} ${startTime})`);
       } else {
         console.error(`Failed to sync "${wp.subject}":`, error);
       }
