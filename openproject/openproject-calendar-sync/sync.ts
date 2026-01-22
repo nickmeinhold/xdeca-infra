@@ -77,7 +77,8 @@ async function getCalendarClient() {
 
 function generateEventId(workPackageId: number): string {
   // Google Calendar event IDs must be lowercase alphanumeric
-  return `openproject${workPackageId}`;
+  // Using "v2" suffix for timed events (v1 all-day events may be in trash)
+  return `openprojectv2wp${workPackageId}`;
 }
 
 async function syncToCalendar(workPackages: WorkPackage[]) {
@@ -99,30 +100,20 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
     const eventSummary = `🎯 [${wp._links.project.title}] ${wp.subject}`;
     const contentHash = generateEventHash(milestoneDate, eventSummary);
 
-    // Check if event exists and if it needs conversion from all-day to timed
+    // Check if event exists and if the date has changed from Calendar side
     let skipUpdate = false;
-    let needsRecreate = false;
     try {
       const existing = await calendar.events.get({
         calendarId: GOOGLE_CALENDAR_ID,
         eventId,
       });
-      const isAllDay = !!existing.data.start?.date;
       const existingDate = existing.data.start?.date ||
         (existing.data.start?.dateTime ? getDateInMelbourne(existing.data.start.dateTime) : undefined);
       const existingHash = existing.data.extendedProperties?.private?.contentHash;
 
-      console.log(`  Event ${wp.subject}: start.date=${existing.data.start?.date}, start.dateTime=${existing.data.start?.dateTime}, isAllDay=${isAllDay}`);
-
-      // If it's an all-day event, we need to delete and recreate as timed
-      if (isAllDay) {
-        needsRecreate = true;
-        console.log(`Converting ${wp.subject} from all-day to timed event`);
-      }
-
       // If Calendar date differs from OpenProject AND hash doesn't match stored hash,
       // it means Calendar was modified by user - skip this update
-      if (!needsRecreate && existingDate && existingDate !== milestoneDate && existingHash !== contentHash) {
+      if (existingDate && existingDate !== milestoneDate && existingHash !== contentHash) {
         console.log(`Skipping ${wp.subject}: Calendar has different date (${existingDate}), pending reverse sync`);
         skipUpdate = true;
       }
@@ -131,21 +122,6 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
     }
 
     if (skipUpdate) continue;
-
-    // Delete existing all-day event before recreating as timed
-    if (needsRecreate) {
-      try {
-        await calendar.events.delete({
-          calendarId: GOOGLE_CALENDAR_ID,
-          eventId,
-        });
-        console.log(`Deleted all-day event: ${eventId}`);
-        // Wait for delete to propagate
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error(`Failed to delete ${eventId}:`, error);
-      }
-    }
 
     const event = {
       summary: eventSummary,
@@ -168,22 +144,13 @@ async function syncToCalendar(workPackages: WorkPackage[]) {
     };
 
     try {
-      if (needsRecreate) {
-        // Create new timed event (after deleting all-day version)
-        await calendar.events.insert({
-          calendarId: GOOGLE_CALENDAR_ID,
-          requestBody: { ...event, id: eventId },
-        });
-        console.log(`Recreated as timed: ${wp.subject} (${milestoneDate})`);
-      } else {
-        // Try to update existing event
-        await calendar.events.update({
-          calendarId: GOOGLE_CALENDAR_ID,
-          eventId,
-          requestBody: event,
-        });
-        console.log(`Updated: ${wp.subject} (${milestoneDate})`);
-      }
+      // Try to update existing event
+      await calendar.events.update({
+        calendarId: GOOGLE_CALENDAR_ID,
+        eventId,
+        requestBody: event,
+      });
+      console.log(`Updated: ${wp.subject} (${milestoneDate})`);
     } catch (error: unknown) {
       if (error && typeof error === "object" && "code" in error && error.code === 404) {
         // Event doesn't exist, create it

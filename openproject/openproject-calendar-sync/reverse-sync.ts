@@ -138,7 +138,13 @@ async function reverseSync() {
     const workPackageId = extendedProps.workPackageId;
 
     // Extract workPackageId from event ID if not in extendedProperties
-    const extractedWpId = eventId?.startsWith("openproject") ? eventId.replace("openproject", "") : null;
+    // Handle both old format (openproject{id}) and new format (openprojectv2wp{id})
+    let extractedWpId: string | null = null;
+    if (eventId?.startsWith("openprojectv2wp")) {
+      extractedWpId = eventId.replace("openprojectv2wp", "");
+    } else if (eventId?.startsWith("openproject")) {
+      extractedWpId = eventId.replace("openproject", "");
+    }
     const wpId = workPackageId || extractedWpId;
 
     // Get event details
