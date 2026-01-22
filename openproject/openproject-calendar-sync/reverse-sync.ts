@@ -1,5 +1,4 @@
 import { google } from "googleapis";
-import { createHash } from "crypto";
 
 // Configuration from environment
 const OPENPROJECT_URL = process.env.OPENPROJECT_URL!;
@@ -17,9 +16,22 @@ interface CalendarEvent {
   } | null;
 }
 
-// Generate a hash of event content for change detection
-function generateEventHash(date: string, summary: string): string {
-  return createHash("md5").update(`${date}:${summary}`).digest("hex").slice(0, 16);
+// Fetch current date from OpenProject for a work package
+async function getOpenProjectDate(workPackageId: string): Promise<string | null> {
+  const url = `${OPENPROJECT_URL}/api/v3/work_packages/${workPackageId}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`apikey:${OPENPROJECT_API_KEY}`).toString("base64")}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.date || data.startDate || data.dueDate || null;
+  } catch {
+    return null;
+  }
 }
 
 async function getCalendarClient() {
@@ -116,18 +128,18 @@ async function reverseSync() {
     const storedHash = extendedProps.contentHash;
     const workPackageId = extendedProps.workPackageId;
 
-    // Debug: log event details
-    const eventDate = event.start?.date || event.start?.dateTime?.split("T")[0];
-    const eventSummary = event.summary || "";
-    console.log(`\nEvent: ${eventId}`);
-    console.log(`  Summary: ${eventSummary}`);
-    console.log(`  Date: ${eventDate}`);
-    console.log(`  Stored hash: ${storedHash}`);
-    console.log(`  WorkPackageId: ${workPackageId}`);
-
     // Extract workPackageId from event ID if not in extendedProperties
     const extractedWpId = eventId?.startsWith("openproject") ? eventId.replace("openproject", "") : null;
     const wpId = workPackageId || extractedWpId;
+
+    // Get event details
+    const calendarDate = event.start?.date || event.start?.dateTime?.split("T")[0];
+    const eventSummary = event.summary || "";
+
+    console.log(`\nEvent: ${eventId}`);
+    console.log(`  Summary: ${eventSummary}`);
+    console.log(`  Calendar date: ${calendarDate}`);
+    console.log(`  WorkPackageId: ${wpId}`);
 
     if (!wpId) {
       console.log(`  -> Skipping: no workPackageId`);
@@ -135,53 +147,38 @@ async function reverseSync() {
       continue;
     }
 
-    if (!eventDate) {
+    if (!calendarDate) {
       console.log(`  -> Skipping: no date`);
       skippedCount++;
       continue;
     }
 
-    // Calculate current hash
-    const currentHash = generateEventHash(eventDate, eventSummary);
-    console.log(`  Current hash: ${currentHash}`);
+    // Get current date from OpenProject
+    const openProjectDate = await getOpenProjectDate(wpId);
+    console.log(`  OpenProject date: ${openProjectDate}`);
 
-    // If no stored hash (extendedProperties were lost), we need to check against OpenProject
-    if (!storedHash) {
-      console.log(`  -> ExtendedProperties lost! Will sync this event.`);
-      // Fall through to update
-    } else if (storedHash === currentHash) {
-      // If hash matches, event hasn't been modified in Calendar - skip
-      console.log(`  -> Skipping: hash matches (no changes)`);
+    if (!openProjectDate) {
+      console.log(`  -> Skipping: could not fetch OpenProject date`);
       skippedCount++;
       continue;
     }
 
-    console.log(`Event ${eventId} modified in Calendar (hash mismatch)`);
-    console.log(`  Stored hash: ${storedHash}, Current hash: ${currentHash}`);
-    console.log(`  Updating OpenProject work package ${wpId} to date ${eventDate}`);
+    // Compare dates directly
+    if (calendarDate === openProjectDate) {
+      console.log(`  -> Skipping: dates match`);
+      skippedCount++;
+      continue;
+    }
+
+    console.log(`  -> Date mismatch! Calendar: ${calendarDate}, OpenProject: ${openProjectDate}`);
+    console.log(`  Updating OpenProject to ${calendarDate}`);
 
     // Update OpenProject milestone
-    const success = await updateOpenProjectMilestone(wpId, eventDate);
+    const success = await updateOpenProjectMilestone(wpId, calendarDate);
 
     if (success) {
       console.log(`  Successfully updated work package ${wpId}`);
       updatedCount++;
-
-      // Update the hash in Calendar to prevent re-processing
-      // and mark as user-modified from calendar
-      await calendar.events.patch({
-        calendarId: GOOGLE_CALENDAR_ID,
-        eventId: eventId!,
-        requestBody: {
-          extendedProperties: {
-            private: {
-              ...extendedProps,
-              contentHash: currentHash,
-              syncSource: "calendar", // Mark as modified from calendar
-            },
-          },
-        },
-      });
     }
   }
 
