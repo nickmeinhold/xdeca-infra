@@ -80,18 +80,32 @@ async function updateOpenProjectMilestone(
 async function reverseSync() {
   const calendar = await getCalendarClient();
 
-  // Fetch all events from the calendar that were created by OpenProject sync
-  // We use a privateExtendedProperty filter to only get our events
-  const events = await calendar.events.list({
+  // Fetch events that have our syncSource property
+  const eventsWithProperty = await calendar.events.list({
     calendarId: GOOGLE_CALENDAR_ID,
     privateExtendedProperty: "syncSource=openproject",
     maxResults: 500,
     singleEvents: true,
-    orderBy: "updated",
   });
 
-  const items = events.data.items || [];
-  console.log(`Found ${items.length} OpenProject-synced events`);
+  // Also fetch events by searching for our emoji prefix (in case extendedProperties were lost)
+  const eventsWithEmoji = await calendar.events.list({
+    calendarId: GOOGLE_CALENDAR_ID,
+    q: "🎯",
+    maxResults: 500,
+    singleEvents: true,
+  });
+
+  // Merge and deduplicate by event ID
+  const allEventsMap = new Map<string, CalendarEvent>();
+  for (const event of [...(eventsWithProperty.data.items || []), ...(eventsWithEmoji.data.items || [])]) {
+    if (event.id?.startsWith("openproject")) {
+      allEventsMap.set(event.id, event as CalendarEvent);
+    }
+  }
+
+  const items = Array.from(allEventsMap.values());
+  console.log(`Found ${items.length} OpenProject events (${eventsWithProperty.data.items?.length || 0} with extendedProperties, ${eventsWithEmoji.data.items?.length || 0} with emoji search)`);
 
   let updatedCount = 0;
   let skippedCount = 0;
@@ -111,7 +125,11 @@ async function reverseSync() {
     console.log(`  Stored hash: ${storedHash}`);
     console.log(`  WorkPackageId: ${workPackageId}`);
 
-    if (!workPackageId) {
+    // Extract workPackageId from event ID if not in extendedProperties
+    const extractedWpId = eventId?.startsWith("openproject") ? eventId.replace("openproject", "") : null;
+    const wpId = workPackageId || extractedWpId;
+
+    if (!wpId) {
       console.log(`  -> Skipping: no workPackageId`);
       skippedCount++;
       continue;
@@ -127,8 +145,12 @@ async function reverseSync() {
     const currentHash = generateEventHash(eventDate, eventSummary);
     console.log(`  Current hash: ${currentHash}`);
 
-    // If hash matches, event hasn't been modified in Calendar - skip
-    if (storedHash === currentHash) {
+    // If no stored hash (extendedProperties were lost), we need to check against OpenProject
+    if (!storedHash) {
+      console.log(`  -> ExtendedProperties lost! Will sync this event.`);
+      // Fall through to update
+    } else if (storedHash === currentHash) {
+      // If hash matches, event hasn't been modified in Calendar - skip
       console.log(`  -> Skipping: hash matches (no changes)`);
       skippedCount++;
       continue;
@@ -136,13 +158,13 @@ async function reverseSync() {
 
     console.log(`Event ${eventId} modified in Calendar (hash mismatch)`);
     console.log(`  Stored hash: ${storedHash}, Current hash: ${currentHash}`);
-    console.log(`  Updating OpenProject work package ${workPackageId} to date ${eventDate}`);
+    console.log(`  Updating OpenProject work package ${wpId} to date ${eventDate}`);
 
     // Update OpenProject milestone
-    const success = await updateOpenProjectMilestone(workPackageId, eventDate);
+    const success = await updateOpenProjectMilestone(wpId, eventDate);
 
     if (success) {
-      console.log(`  Successfully updated work package ${workPackageId}`);
+      console.log(`  Successfully updated work package ${wpId}`);
       updatedCount++;
 
       // Update the hash in Calendar to prevent re-processing
