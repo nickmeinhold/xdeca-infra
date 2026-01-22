@@ -7,12 +7,12 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ```
 .
 ├── caddy/              # Reverse proxy (Caddy)
-├── cloudflare/         # Cloudflare Workers (Terraform)
+├── cloudflare/         # Cloudflare Terraform (unused)
 ├── discourse/          # Forum (Discourse)
-├── openproject/        # Project management (OpenProject)
+├── openproject/        # Project management + calendar sync
 ├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
-├── kamatera-vps/       # Kamatera VPS (fallback provider)
+├── kamatera-vps/       # Kamatera VPS (primary)
 └── .sops.yaml          # SOPS encryption config
 ```
 
@@ -39,6 +39,8 @@ Google Calendar ──push──▶ VPS ──▶ OpenProject
 ```
 
 Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
+
+**Status**: Partially deployed - needs secrets configured. See `openproject/CLAUDE.md`.
 
 ## Cloud Providers
 

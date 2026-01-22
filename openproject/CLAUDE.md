@@ -32,27 +32,57 @@ Self-hosted on the VPS. No Cloudflare Workers or GitHub Actions needed.
 | `openproject-calendar-sync/secrets.yaml` | SOPS-encrypted secrets |
 | `openproject-calendar-sync/calendar-sync.service` | Systemd service file |
 
-### Deployment (VPS)
+### Deployment Status
+
+**Partially deployed on VPS (103.125.218.210)**:
+- [x] Node.js 20 installed
+- [x] Repo cloned to ~/xdeca-infra
+- [x] npm dependencies installed
+- [x] SOPS, age, yq installed
+- [x] Age key copied
+- [ ] secrets.yaml created and encrypted
+- [ ] systemd service installed
+- [ ] Caddy reverse proxy configured
+
+### Completing Deployment
 
 ```bash
-# Install
-cd ~/xdeca-infra/openproject/openproject-calendar-sync
-make install
+# SSH to VPS
+ssh ubuntu@103.125.218.210
 
-# Set up secrets (one-time)
-make secrets-create
-# Edit secrets.yaml with credentials
+# Create secrets file
+cd ~/xdeca-infra/openproject/openproject-calendar-sync
+cp secrets.yaml.example secrets.yaml
+
+# Edit with your values:
+# - webhook_secret: (from cloudflare/secrets.yaml)
+# - gcal_webhook_secret: (from cloudflare/secrets.yaml)
+# - openproject_url: https://openproject.enspyr.co
+# - openproject_api_key: (from OpenProject admin → API)
+# - google_calendar_id: (from Google Calendar settings)
+# - google_service_account_json: (from Google Cloud Console)
+
+# Encrypt secrets
 sops -e -i secrets.yaml
 
 # Install systemd service
 sudo cp calendar-sync.service /etc/systemd/system/
-sudo systemctl enable calendar-sync
-sudo systemctl start calendar-sync
+sudo systemctl daemon-reload
+sudo systemctl enable --now calendar-sync
 
-# Add Caddy routes (in Caddyfile)
-# calendar-sync.yourdomain.com {
+# Add Caddy route
+sudo nano /etc/caddy/Caddyfile
+# Add:
+# calendar-sync.enspyr.co {
 #     reverse_proxy localhost:3001
 # }
+sudo systemctl reload caddy
+
+# Update OpenProject webhook URL to:
+# https://calendar-sync.enspyr.co/openproject?token=<WEBHOOK_SECRET>
+
+# Set up Google Calendar watch
+make watch-setup
 ```
 
 ### Manual Commands
