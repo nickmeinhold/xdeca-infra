@@ -10,7 +10,7 @@ output "instance_public_ip" {
 
 output "instance_private_ip" {
   description = "Private IP address"
-  value       = kamatera_server.xdeca.private_ips[0]
+  value       = length(kamatera_server.xdeca.private_ips) > 0 ? kamatera_server.xdeca.private_ips[0] : null
 }
 
 output "datacenter" {
