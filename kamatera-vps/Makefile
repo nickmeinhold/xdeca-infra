@@ -74,6 +74,14 @@ backup-now:
 restore:
 	../scripts/deploy-to.sh $$(cd terraform && terraform output -raw instance_public_ip) restore
 
+# Backup and destroy (for cost savings or DR testing)
+teardown:
+	@echo "Running final backup before teardown..."
+	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "/opt/scripts/backup.sh all"
+	@echo "Backup complete. Destroying VPS..."
+	$(MAKE) destroy
+	@echo "Teardown complete. Run 'make apply && make deploy' to restore."
+
 # Secrets management
 secrets-create:
 	@if [ ! -f kamatera.yaml ]; then \
@@ -128,5 +136,7 @@ help:
 	@echo "  make backup-test   - Test rclone connection"
 	@echo "  make backup-now    - Run backup immediately"
 	@echo "  make restore       - Restore from latest backups"
+	@echo "  make teardown      - Backup then destroy VPS"
 	@echo ""
 	@echo "Note: Auto-restore runs on 'make deploy' if databases are empty"
+	@echo "Full cycle: make teardown → make apply && make deploy"
