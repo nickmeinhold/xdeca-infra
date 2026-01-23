@@ -2,6 +2,8 @@
 
 Infrastructure monorepo for self-hosted services.
 
+📊 [Slides](https://docs.google.com/presentation/d/1FeaD9hIuZ_v6JMNS37dciy7CyX6a7d0m1fT5TG0HGbs/edit)
+
 ## Services
 
 | Service | Description | URL |
