@@ -10,3 +10,4 @@
 
 # Generated .env files (created from secrets.yaml during deploy)
 **/.env
+kamatera-vps/terraform/terraform.tfstate

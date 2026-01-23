@@ -76,7 +76,7 @@ make restore       # Force restore from latest
 | Provider | Status | IP | Cost |
 |----------|--------|-----|------|
 | [oci-vps](./oci-vps/) | Pending | - | Free tier |
-| [kamatera-vps](./kamatera-vps/) | **Active** | `103.125.218.210` | ~$12/mo |
+| [kamatera-vps](./kamatera-vps/) | **Active** | `45.151.153.65` | ~$12/mo |
 | [cloudflare](./cloudflare/) | Unused | - | Free tier |
 
 ## Secrets Management
@@ -149,7 +149,7 @@ Kamatera cloud VPS - paid fallback when OCI free tier is unavailable.
 - **RAM**: 4GB
 - **Storage**: 50GB
 - **Region**: Sydney, Australia
-- **IP**: `103.125.218.210`
+- **IP**: `45.151.153.65`
 
 ## Quick Start
 
