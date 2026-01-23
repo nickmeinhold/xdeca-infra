@@ -58,6 +58,17 @@ deploy_service() {
 
 deploy_discourse() {
     echo "Deploying Discourse..."
+
+    # Install Docker if not present (Discourse requires Docker, not Podman)
+    if ! ssh $REMOTE "command -v docker &> /dev/null"; then
+        echo "Installing Docker for Discourse..."
+        ssh $REMOTE "curl -fsSL https://get.docker.com | sudo sh"
+        ssh $REMOTE "sudo usermod -aG docker ubuntu"
+        # Need to reconnect for group membership to take effect
+        echo "Docker installed. Reconnecting..."
+    fi
+
+    # Clone discourse_docker if not present
     ssh $REMOTE "test -d ~/apps/discourse || git clone https://github.com/discourse/discourse_docker.git ~/apps/discourse"
 
     if [ -f "$REPO_ROOT/discourse/secrets.yaml" ]; then
@@ -85,10 +96,20 @@ deploy_discourse() {
         ssh $REMOTE "mkdir -p ~/apps/discourse/containers"
         scp /tmp/discourse-app.yml $REMOTE:~/apps/discourse/containers/app.yml
         rm /tmp/discourse-app.yml
+    else
+        echo "WARNING: No discourse/secrets.yaml found. Skipping config generation."
+        return 1
     fi
 
-    echo "Discourse config deployed."
-    echo "To bootstrap: ssh $REMOTE 'cd ~/apps/discourse && ./launcher bootstrap app'"
+    # Check if Discourse container exists and is running
+    if ssh $REMOTE "sudo docker ps --format '{{.Names}}' | grep -q '^app$'"; then
+        echo "Discourse is already running. Use 'sudo ./launcher rebuild app' to update."
+    else
+        echo "Bootstrapping Discourse (this takes several minutes)..."
+        ssh $REMOTE "cd ~/apps/discourse && sudo ./launcher bootstrap app && sudo ./launcher start app"
+    fi
+
+    echo "Discourse deployment complete."
 }
 
 deploy_calendar_sync() {
@@ -301,13 +322,13 @@ auto_restore() {
 
     # Check Discourse - if fresh install, only has system user and welcome topic
     echo "Checking Discourse..."
-    local discourse_topic_count=$(ssh $REMOTE "cd ~/apps/discourse && ./launcher enter app bash -c 'rails r \"puts Topic.count\"' 2>/dev/null" || echo "error")
+    local discourse_topic_count=$(ssh $REMOTE "cd ~/apps/discourse && sudo ./launcher enter app bash -c 'rails r \"puts Topic.count\"' 2>/dev/null" || echo "error")
 
     if [ "$discourse_topic_count" = "2" ] || [ "$discourse_topic_count" = "1" ] || [ "$discourse_topic_count" = "0" ]; then
         echo "Discourse appears fresh (topic count: $discourse_topic_count), restoring from backup..."
         restore_discourse
     elif [ "$discourse_topic_count" = "error" ]; then
-        echo "Discourse not running, skipping restore"
+        echo "Discourse not running or not installed, skipping restore"
     else
         echo "Discourse has data (topic count: $discourse_topic_count), skipping restore"
     fi
@@ -386,10 +407,10 @@ restore_discourse() {
 
     echo "Restoring Discourse (this may take a few minutes)..."
     # Enable restore mode and restore
-    ssh $REMOTE "cd ~/apps/discourse && ./launcher enter app bash -c 'discourse enable_restore && discourse restore $latest --location=default'"
+    ssh $REMOTE "cd ~/apps/discourse && sudo ./launcher enter app bash -c 'discourse enable_restore && discourse restore $latest --location=default'"
 
     echo "Rebuilding Discourse..."
-    ssh $REMOTE "cd ~/apps/discourse && ./launcher rebuild app"
+    ssh $REMOTE "cd ~/apps/discourse && sudo ./launcher rebuild app"
 
     echo "Discourse restored!"
 }
