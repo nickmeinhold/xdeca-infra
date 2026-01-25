@@ -11,6 +11,8 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── discourse/          # Forum (Discourse)
 ├── dns/                # Namecheap DNS (Terraform)
+├── matrix/             # Matrix Synapse + bridges
+├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
 ├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
@@ -27,8 +29,10 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
 | OpenProject | 8080 | openproject.enspyr.co | Project management |
 | Twenty | 3000 | twenty.enspyr.co | CRM |
-| Discourse | 8888 | discourse.enspyr.co | Forum |
+| Discourse | 8888 | discourse.enspyr.co | Forum (removed, rebuild later) |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
+| Matrix Synapse | 8008 | matrix.enspyr.co | Chat homeserver |
+| Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 
 ## Integrations
 
@@ -209,8 +213,44 @@ CRM (Salesforce alternative). Requires PostgreSQL + Redis.
 
 Forum platform. Uses its own launcher, not docker-compose.
 
+**Status**: Removed from Kamatera to free RAM. Rebuild later via IaC.
+
 ```bash
 cd ~/apps/discourse
 ./launcher bootstrap app
 ./launcher start app
 ```
+
+---
+
+# matrix
+
+Matrix Synapse homeserver with optional bridges (Telegram, Discord, Signal, WhatsApp).
+
+**RAM**: ~800 MB - 1.2 GB (with 4 bridges)
+
+```bash
+cd matrix
+cp .env.example .env
+# Edit .env with your values
+docker compose up -d
+```
+
+See `matrix/CLAUDE.md` for full setup including bridge configuration.
+
+---
+
+# obsidian-livesync
+
+Self-hosted Obsidian sync using CouchDB.
+
+**RAM**: ~128-256 MB
+
+```bash
+cd obsidian-livesync
+cp .env.example .env
+# Edit .env with your values
+docker compose up -d
+```
+
+After starting, configure CouchDB for LiveSync (CORS, database). See `obsidian-livesync/CLAUDE.md`.
