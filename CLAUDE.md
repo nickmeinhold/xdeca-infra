@@ -11,12 +11,11 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── discourse/          # Forum (Discourse)
 ├── dns/                # Namecheap DNS (Terraform)
-├── matrix/             # Matrix Synapse + bridges
 ├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
 ├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
-├── kamatera-vps/       # Kamatera VPS (primary)
+├── lightsail/          # AWS Lightsail VPS (primary)
 ├── scripts/            # Deployment & backup scripts
 ├── docs/               # Documentation
 └── .sops.yaml          # SOPS encryption config
@@ -31,7 +30,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Twenty | 3000 | twenty.enspyr.co | CRM |
 | Discourse | 8888 | discourse.enspyr.co | Forum (removed, rebuild later) |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
-| Matrix Synapse | 8008 | matrix.enspyr.co | Chat homeserver |
 | Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 
 ## Integrations
@@ -79,8 +77,8 @@ make restore       # Force restore from latest
 
 | Provider | Status | IP | Cost |
 |----------|--------|-----|------|
+| [lightsail](./lightsail/) | Pending | - | ~$12/mo |
 | [oci-vps](./oci-vps/) | Pending | - | Free tier |
-| [kamatera-vps](./kamatera-vps/) | **Active** | `45.151.153.65` | ~$12/mo |
 | [cloudflare](./cloudflare/) | Unused | - | Free tier |
 
 ## Secrets Management
@@ -114,51 +112,50 @@ make destroy  # Remove old workers from Cloudflare
 
 # oci-vps
 
-Oracle Cloud Always Free tier VPS.
+Oracle Cloud Always Free tier VPS. Two accounts configured for parallel provisioning attempts.
 
-## Specs
+## Accounts
+
+| Account | Region | Status |
+|---------|--------|--------|
+| Melbourne | ap-melbourne-1 | Pending |
+| Sydney | ap-sydney-1 | Pending |
+
+## Specs (per instance)
 
 - **Shape**: VM.Standard.A1.Flex (ARM)
 - **OCPUs**: 4
 - **RAM**: 24GB
 - **Storage**: 50GB
-- **Region**: ap-melbourne-1
-
-## Quick Start
-
-```bash
-cd oci-vps
-make init
-make apply   # Retry if "Out of capacity"
-make ssh
-```
 
 ## Auto-Retry Provisioning
 
-The Pi runs a cron job every 5 minutes to retry provisioning until successful:
+The Pi runs a cron job every 5 minutes to retry both accounts until one succeeds:
 
 ```bash
 ssh pi "tail ~/oci-provision.log"
 ```
 
+Notifications via ntfy.sh topic `xdeca-oci-alerts` when provisioned.
+
 ---
 
-# kamatera-vps
+# lightsail
 
-Kamatera cloud VPS - paid fallback when OCI free tier is unavailable.
+AWS Lightsail VPS - primary production server.
 
 ## Specs
 
-- **CPU**: 2 cores (x86)
-- **RAM**: 4GB
-- **Storage**: 50GB
-- **Region**: Sydney, Australia
-- **IP**: `45.151.153.65`
+- **CPU**: 1 vCPU
+- **RAM**: 2GB
+- **Storage**: 60GB SSD
+- **Region**: Sydney (ap-southeast-2)
+- **Cost**: ~$12/mo
 
 ## Quick Start
 
 ```bash
-cd kamatera-vps
+cd lightsail
 make init
 make apply
 make ssh
@@ -220,23 +217,6 @@ cd ~/apps/discourse
 ./launcher bootstrap app
 ./launcher start app
 ```
-
----
-
-# matrix
-
-Matrix Synapse homeserver with optional bridges (Telegram, Discord, Signal, WhatsApp).
-
-**RAM**: ~800 MB - 1.2 GB (with 4 bridges)
-
-```bash
-cd matrix
-cp .env.example .env
-# Edit .env with your values
-docker compose up -d
-```
-
-See `matrix/CLAUDE.md` for full setup including bridge configuration.
 
 ---
 

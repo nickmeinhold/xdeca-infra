@@ -1,5 +1,0 @@
-# Kamatera API credentials
-# Get from: https://console.kamatera.com → API → Keys
-
-api_client_id: your-client-id
-api_secret: your-secret-key
