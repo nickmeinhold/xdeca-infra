@@ -1,6 +1,6 @@
 # Backup & Restore
 
-All services backup to **Oracle Cloud Object Storage** (Standard tier).
+All services backup to **Cloudflare R2** (Standard tier).
 
 ## Overview
 
@@ -8,7 +8,6 @@ All services backup to **Oracle Cloud Object Storage** (Standard tier).
 |---------|------------------|----------|-----------|
 | OpenProject | PostgreSQL database | Daily 4 AM | 7 days |
 | Twenty | PostgreSQL + local storage | Daily 4 AM | 7 days |
-| Discourse | Built-in backup | Daily 3 AM | 7 days |
 
 ## Cost
 
@@ -63,7 +62,6 @@ sudo /opt/scripts/backup.sh all
 # Single service
 sudo /opt/scripts/backup.sh openproject
 sudo /opt/scripts/backup.sh twenty
-sudo /opt/scripts/backup.sh discourse
 ```
 
 ### List Remote Backups
@@ -72,7 +70,6 @@ sudo /opt/scripts/backup.sh discourse
 rclone ls oci-archive:xdeca-backups/
 rclone ls oci-archive:xdeca-backups/openproject/
 rclone ls oci-archive:xdeca-backups/twenty/
-rclone ls oci-archive:xdeca-backups/discourse/
 ```
 
 ### Check Backup Logs
@@ -94,7 +91,7 @@ Using Standard tier storage - **no restore delay**, objects are immediately avai
 ### Auto-Restore on Deploy
 
 When running `make deploy`, the system automatically:
-1. Checks if OpenProject/Twenty/Discourse are empty (fresh install)
+1. Checks if OpenProject/Twenty are empty (fresh install)
 2. If empty AND backups exist, restores from latest backup
 3. Skips restore if data already exists
 
@@ -110,7 +107,6 @@ make deploy   # Deploy services + auto-restore from backup
 |---------|----------------------------|
 | OpenProject | `users` table has ≤1 row |
 | Twenty | `workspace` table is empty |
-| Discourse | ≤2 topics (welcome + system) |
 
 ### Manual Restore
 
@@ -129,9 +125,6 @@ sudo /opt/scripts/restore.sh twenty
 # Restore specific date
 sudo /opt/scripts/restore.sh openproject 2024-01-15
 sudo /opt/scripts/restore.sh twenty 2024-01-15
-
-# Discourse (manual process)
-sudo /opt/scripts/restore.sh discourse
 ```
 
 ### OpenProject Restore
@@ -156,55 +149,6 @@ sudo /opt/scripts/restore.sh openproject
 ```bash
 sudo /opt/scripts/restore.sh twenty
 ```
-
-### Discourse Restore
-
-Discourse uses its own restore process:
-
-1. **List backups**
-   ```bash
-   rclone ls oci-archive:xdeca-backups/discourse/
-   ```
-
-2. **Request archive restore** (~1 hour wait)
-   ```bash
-   NAMESPACE=$(oci os ns get --query 'data' --raw-output)
-   oci os object restore \
-     --namespace $NAMESPACE \
-     --bucket-name xdeca-backups \
-     --name "discourse/discourse-2024-01-15.tar.gz" \
-     --hours 24
-   ```
-
-3. **Check status** (wait for "Available")
-   ```bash
-   oci os object head \
-     --namespace $NAMESPACE \
-     --bucket-name xdeca-backups \
-     --name "discourse/discourse-2024-01-15.tar.gz" \
-     --query 'archival-state'
-   ```
-
-4. **Download backup**
-   ```bash
-   rclone copy oci-archive:xdeca-backups/discourse/discourse-2024-01-15.tar.gz \
-     /var/discourse/shared/standalone/backups/default/
-   ```
-
-5. **Restore via Discourse**
-
-   Option A - Admin UI:
-   - Go to Admin → Backups
-   - Click "Restore" on the backup
-
-   Option B - CLI:
-   ```bash
-   cd /var/discourse
-   ./launcher enter app
-   discourse restore discourse-2024-01-15.tar.gz
-   exit
-   ./launcher rebuild app
-   ```
 
 ## Troubleshooting
 
@@ -252,4 +196,3 @@ Status meanings:
 |---------|-------------|----------|
 | OpenProject | `xdeca-backups/openproject/` | `openproject-YYYY-MM-DD.sql.gz` |
 | Twenty | `xdeca-backups/twenty/` | `twenty-db-YYYY-MM-DD.sql.gz`, `twenty-storage-YYYY-MM-DD.tar.gz` |
-| Discourse | `xdeca-backups/discourse/` | `discourse-YYYY-MM-DD.tar.gz` |

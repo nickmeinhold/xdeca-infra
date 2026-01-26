@@ -9,7 +9,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── backups/            # Backup config (OCI Object Storage)
 ├── caddy/              # Reverse proxy (Caddy)
 ├── cloudflare/         # Cloudflare Terraform (unused)
-├── discourse/          # Forum (Discourse)
 ├── dns/                # Namecheap DNS (Terraform)
 ├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
@@ -28,7 +27,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
 | OpenProject | 8080 | openproject.enspyr.co | Project management |
 | Twenty | 3000 | twenty.enspyr.co | CRM |
-| Discourse | 8888 | discourse.enspyr.co | Forum (removed, rebuild later) |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
 | Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 
@@ -57,7 +55,6 @@ Daily backups to Oracle Cloud Object Storage (Standard tier, first 10GB free).
 |---------|----------|-----------|
 | OpenProject | 4 AM | 7 days |
 | Twenty | 4 AM | 7 days |
-| Discourse | 3 AM | 7 days |
 
 **Status**: Automated via IaC. First deploy requires `backups/secrets.yaml`. See `docs/backups.md`.
 
@@ -185,7 +182,6 @@ Reverse proxy with automatic HTTPS via Let's Encrypt.
 ```
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Twenty (3000)
-                          → Discourse (8888)
                           → Calendar Sync (3001)
 ```
 
@@ -203,20 +199,6 @@ Project management. Uses internal PostgreSQL.
 # twenty
 
 CRM (Salesforce alternative). Requires PostgreSQL + Redis.
-
----
-
-# discourse
-
-Forum platform. Uses its own launcher, not docker-compose.
-
-**Status**: Removed from Kamatera to free RAM. Rebuild later via IaC.
-
-```bash
-cd ~/apps/discourse
-./launcher bootstrap app
-./launcher start app
-```
 
 ---
 

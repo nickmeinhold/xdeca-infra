@@ -6,10 +6,6 @@ twenty.enspyr.co {
     reverse_proxy localhost:3000
 }
 
-discourse.enspyr.co {
-    reverse_proxy localhost:8888
-}
-
 calendar-sync.enspyr.co {
     reverse_proxy localhost:3001
 }

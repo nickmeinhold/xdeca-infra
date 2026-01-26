@@ -8,7 +8,6 @@ Automated backups to Oracle Cloud Object Storage (Archive tier).
 |---------|------|----------|-----------|
 | OpenProject | PostgreSQL | Daily 4 AM | 7 days |
 | Twenty | PostgreSQL + storage | Daily 4 AM | 7 days |
-| Discourse | Built-in backups | Daily 3 AM | 7 days |
 
 **Storage**: Oracle Archive tier (~1 hour restore time, first 10GB free).
 

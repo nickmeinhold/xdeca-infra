@@ -11,7 +11,6 @@ Infrastructure monorepo for self-hosted services.
 | [Caddy](./caddy/) | Reverse proxy with automatic HTTPS | - |
 | [OpenProject](./openproject/) | Project management | openproject.enspyr.co |
 | [Twenty](./twenty/) | CRM (Salesforce alternative) | twenty.enspyr.co |
-| [Discourse](./discourse/) | Forum / community platform | discourse.enspyr.co |
 | Calendar Sync | OpenProject ↔ Google Calendar | calendar-sync.enspyr.co |
 
 ## Infrastructure
@@ -28,7 +27,6 @@ Infrastructure monorepo for self-hosted services.
 ```
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Twenty (3000)
-                          → Discourse (8888)
                           → Calendar Sync (3001)
 
 OpenProject ──webhook──▶ Calendar Sync ──▶ Google Calendar
@@ -84,7 +82,6 @@ make apply
 ├── dns/                    # Namecheap DNS (Terraform)
 │   ├── main.tf
 │   └── secrets.yaml        # SOPS-encrypted
-├── discourse/              # Forum
 ├── openproject/            # Project management
 │   └── openproject-calendar-sync/
 │       ├── webhook-server.ts

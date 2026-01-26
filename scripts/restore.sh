@@ -2,7 +2,7 @@
 # Restore script for all services
 # Restores from Oracle Object Storage via rclone
 # Usage: ./restore.sh <service> [date]
-#   service: openproject|twenty|discourse
+#   service: openproject|twenty
 #   date: YYYY-MM-DD (optional, defaults to latest)
 
 set -e
@@ -10,7 +10,7 @@ set -e
 SERVICE=$1
 DATE=${2:-""}
 RESTORE_DIR="/tmp/restore"
-RCLONE_REMOTE="oci-archive"
+RCLONE_REMOTE="s3"
 BUCKET="xdeca-backups"
 
 RED='\033[0;31m'
@@ -24,7 +24,7 @@ error() { echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1" >&2; }
 
 if [ -z "$SERVICE" ]; then
   echo "Usage: $0 <service> [date]"
-  echo "  service: openproject|twenty|discourse"
+  echo "  service: openproject|twenty"
   echo "  date: YYYY-MM-DD (optional)"
   echo ""
   echo "Examples:"
@@ -200,33 +200,6 @@ restore_twenty() {
   log "Twenty restore complete"
 }
 
-restore_discourse() {
-  log "Restoring Discourse..."
-  echo ""
-  echo "Discourse has its own restore process:"
-  echo ""
-  echo "1. List available backups:"
-  echo "   rclone ls oci-archive:xdeca-backups/discourse/"
-  echo ""
-  echo "2. Request restore from archive (wait ~1 hour):"
-  echo "   oci os object restore --namespace <ns> --bucket-name xdeca-backups \\"
-  echo "     --name discourse/<backup-file> --hours 24"
-  echo ""
-  echo "3. Download backup:"
-  echo "   rclone copy oci-archive:xdeca-backups/discourse/<backup-file> \\"
-  echo "     /var/discourse/shared/standalone/backups/default/"
-  echo ""
-  echo "4. Restore via Discourse Admin UI or CLI:"
-  echo "   cd /var/discourse"
-  echo "   ./launcher enter app"
-  echo "   discourse restore <backup-file>"
-  echo "   exit"
-  echo "   ./launcher rebuild app"
-  echo ""
-
-  list_backups discourse
-}
-
 # Run restore
 case $SERVICE in
   openproject)
@@ -235,15 +208,12 @@ case $SERVICE in
   twenty)
     restore_twenty
     ;;
-  discourse)
-    restore_discourse
-    ;;
   list)
     list_backups "${DATE:-openproject}"
     ;;
   *)
     error "Unknown service: $SERVICE"
-    echo "Valid services: openproject, twenty, discourse"
+    echo "Valid services: openproject, twenty"
     exit 1
     ;;
 esac

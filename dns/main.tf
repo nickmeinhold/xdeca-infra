@@ -20,14 +20,6 @@ resource "namecheap_domain_records" "enspyr" {
     ttl      = 1800
   }
 
-  # Discourse Forum
-  record {
-    hostname = "discourse"
-    type     = "A"
-    address  = var.kamatera_ip
-    ttl      = 1800
-  }
-
   # Calendar Sync (OpenProject ↔ Google Calendar)
   record {
     hostname = "calendar-sync"

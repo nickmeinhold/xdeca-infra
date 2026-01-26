@@ -1,14 +1,14 @@
 #!/bin/bash
 # Unified backup script for all services
-# Backs up to Oracle Object Storage via rclone
-# Usage: ./backup.sh [all|openproject|twenty|discourse]
+# Backs up to AWS S3 via rclone
+# Usage: ./backup.sh [all|openproject|twenty]
 
 set -e
 
 SERVICE=${1:-all}
 BACKUP_DIR="/tmp/backups"
 DATE=$(date +%Y-%m-%d)
-RCLONE_REMOTE="oci-archive"
+RCLONE_REMOTE="s3"
 BUCKET="xdeca-backups"
 RETENTION_DAYS=7
 
@@ -66,21 +66,6 @@ backup_twenty() {
   log "Twenty backup complete: twenty-db-$DATE.sql.gz, twenty-storage-$DATE.tar.gz"
 }
 
-backup_discourse() {
-  log "Backing up Discourse..."
-
-  # Discourse creates its own backups, we just sync them
-  local discourse_backup_dir="/var/discourse/shared/standalone/backups/default"
-
-  if [ -d "$discourse_backup_dir" ]; then
-    rclone sync "$discourse_backup_dir" "$RCLONE_REMOTE:$BUCKET/discourse/"
-    log "Discourse backups synced"
-  else
-    error "Discourse backup directory not found: $discourse_backup_dir"
-    return 1
-  fi
-}
-
 cleanup_old_backups() {
   log "Cleaning up backups older than $RETENTION_DAYS days..."
 
@@ -101,7 +86,6 @@ case $SERVICE in
   all)
     backup_openproject
     backup_twenty
-    backup_discourse
     cleanup_old_backups
     ;;
   openproject)
@@ -110,14 +94,11 @@ case $SERVICE in
   twenty)
     backup_twenty
     ;;
-  discourse)
-    backup_discourse
-    ;;
   cleanup)
     cleanup_old_backups
     ;;
   *)
-    echo "Usage: $0 [all|openproject|twenty|discourse|cleanup]"
+    echo "Usage: $0 [all|openproject|twenty|cleanup]"
     exit 1
     ;;
 esac
