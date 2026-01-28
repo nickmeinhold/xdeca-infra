@@ -73,7 +73,7 @@ make restore       # Force restore from latest
 
 | Provider | Status | IP | Cost |
 |----------|--------|-----|------|
-| [lightsail](./lightsail/) | Pending | - | ~$12/mo |
+| [lightsail](./lightsail/) | Active | 13.54.159.183 | ~$12/mo |
 | [oci-vps](./oci-vps/) | Pending | - | Free tier |
 | [cloudflare](./cloudflare/) | Unused | - | Free tier |
 
@@ -200,6 +200,11 @@ Project management. Uses internal PostgreSQL.
 
 Self-hosted Obsidian sync using CouchDB.
 
+**Status**: Currently stopped (to free server resources). Start with:
+```bash
+ssh ubuntu@13.54.159.183 "cd ~/apps/obsidian-livesync && docker-compose up -d"
+```
+
 **RAM**: ~128-256 MB
 
 ## Current Configuration
@@ -248,17 +253,21 @@ Self-hosted team wiki (Notion alternative). Real-time collaboration with edit hi
 - Wiki-style linking between documents
 - Real-time collaboration (see cursors, who's editing)
 - Edit history with attribution
-- Google OAuth login
+- Email/password login (via Brevo SMTP)
 - Markdown support
+
+## Current Auth
+
+Uses email/password authentication (not Google OAuth - that requires Workspace accounts).
+SMTP via Brevo (same credentials as OpenProject in `openproject/secrets.yaml`).
 
 ## Setup
 
-1. Create Google OAuth credentials at https://console.cloud.google.com/apis/credentials
-   - Authorized redirect URI: `https://wiki.enspyr.co/auth/google.callback`
-2. Copy `.env.example` to `.env` and fill in values
-3. Generate secrets: `openssl rand -hex 32`
+1. Copy `.env.example` to `.env`
+2. Generate secrets: `openssl rand -hex 32` (for SECRET_KEY and UTILS_SECRET)
+3. Add SMTP credentials (from `openproject/secrets.yaml`)
 4. Deploy: `./scripts/deploy-to.sh <ip> outline`
 
 ## First Login
 
-First user to sign in becomes admin. Add team members from Settings → Members.
+First user to sign up becomes admin. Invite team members from Settings → Members.
