@@ -14,6 +14,6 @@ storage.enspyr.co {
     reverse_proxy localhost:9000
 }
 
-kanbn.enspyr.co {
+tasks.xdeca.com {
     reverse_proxy localhost:3003
 }
