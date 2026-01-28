@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy services to any VPS
 # Usage: ./scripts/deploy-to.sh <ip> [service]
-# Services: all, caddy, openproject, calendar-sync, obsidian-livesync, outline, backups, scripts
+# Services: all, caddy, openproject, calendar-sync, outline, backups, scripts
 
 set -e
 
@@ -249,61 +249,6 @@ SMTP_SECURE=\(.smtp_secure)"' > "$REPO_ROOT/outline/.env"
     echo "  Note: First user to sign in becomes admin"
 }
 
-deploy_obsidian_livesync() {
-    echo "Deploying Obsidian LiveSync (CouchDB)..."
-
-    # Check for .env file
-    if [ ! -f "$REPO_ROOT/obsidian-livesync/.env" ]; then
-        echo "ERROR: obsidian-livesync/.env not found"
-        echo "Create it from .env.example first"
-        return 1
-    fi
-
-    # Deploy files
-    ssh $REMOTE "mkdir -p ~/apps/obsidian-livesync"
-    rsync -avz --delete "$REPO_ROOT/obsidian-livesync/" $REMOTE:~/apps/obsidian-livesync/
-
-    # Start CouchDB
-    ssh $REMOTE "cd ~/apps/obsidian-livesync && docker-compose pull && docker-compose up -d"
-
-    # Wait for CouchDB to be ready
-    echo "Waiting for CouchDB to start..."
-    sleep 5
-
-    # Get credentials from .env
-    local COUCH_USER=$(grep COUCHDB_USER "$REPO_ROOT/obsidian-livesync/.env" | cut -d= -f2)
-    local COUCH_PASS=$(grep COUCHDB_PASSWORD "$REPO_ROOT/obsidian-livesync/.env" | cut -d= -f2)
-
-    # Configure CouchDB for LiveSync
-    echo "Configuring CouchDB for LiveSync..."
-    ssh $REMOTE << EOF
-COUCH_URL="http://${COUCH_USER}:${COUCH_PASS}@localhost:5984"
-
-# Create system databases (ignore errors if they exist)
-curl -s -X PUT "\${COUCH_URL}/_users" > /dev/null 2>&1 || true
-curl -s -X PUT "\${COUCH_URL}/_replicator" > /dev/null 2>&1 || true
-curl -s -X PUT "\${COUCH_URL}/_global_changes" > /dev/null 2>&1 || true
-
-# Enable CORS
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/httpd/enable_cors" -d '"true"' > /dev/null
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/cors/origins" -d '"*"' > /dev/null
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/cors/credentials" -d '"true"' > /dev/null
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/cors/methods" -d '"GET, PUT, POST, HEAD, DELETE"' > /dev/null
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/cors/headers" -d '"accept, authorization, content-type, origin, referer, x-csrf-token"' > /dev/null
-
-# Set max document size (50MB for large notes)
-curl -s -X PUT "\${COUCH_URL}/_node/_local/_config/couchdb/max_document_size" -d '"50000000"' > /dev/null
-
-# Create obsidian database
-curl -s -X PUT "\${COUCH_URL}/obsidian" > /dev/null 2>&1 || true
-
-echo "CouchDB configured!"
-EOF
-
-    echo "Obsidian LiveSync deployed!"
-    echo "  URL: https://$(grep OBSIDIAN_HOSTNAME "$REPO_ROOT/obsidian-livesync/.env" | cut -d= -f2)"
-}
-
 auto_restore() {
     echo "Checking if restore from backup is needed..."
 
@@ -364,7 +309,6 @@ case $SERVICE in
         deploy_service caddy
         deploy_service openproject
         deploy_calendar_sync
-        deploy_obsidian_livesync
         deploy_outline
         auto_restore
         ;;
@@ -380,9 +324,6 @@ case $SERVICE in
     calendar-sync)
         deploy_calendar_sync
         ;;
-    obsidian-livesync|obsidian)
-        deploy_obsidian_livesync
-        ;;
     outline|wiki)
         deploy_outline
         ;;
@@ -392,7 +333,7 @@ case $SERVICE in
         ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 <ip> [all|caddy|openproject|calendar-sync|obsidian-livesync|outline|backups|scripts|restore]"
+        echo "Usage: $0 <ip> [all|caddy|openproject|calendar-sync|outline|backups|scripts|restore]"
         exit 1
         ;;
 esac

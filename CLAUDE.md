@@ -10,7 +10,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── caddy/              # Reverse proxy (Caddy)
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── dns/                # Namecheap DNS (Terraform)
-├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
 ├── outline/            # Team wiki (Notion alternative)
 ├── oci-vps/            # Oracle Cloud provisioning
@@ -27,7 +26,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
 | OpenProject | 8080 | openproject.enspyr.co | Project management |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
-| Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 | Outline | 3002 | wiki.enspyr.co | Team wiki (Notion-like) |
 | MinIO (Outline storage) | 9000 | storage.enspyr.co | S3-compatible file storage |
 
@@ -182,8 +180,8 @@ Reverse proxy with automatic HTTPS via Let's Encrypt.
 ```
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Calendar Sync (3001)
-                          → Obsidian LiveSync (5984)
                           → Outline (3002)
+                          → MinIO Storage (9000)
 ```
 
 ---
@@ -194,52 +192,6 @@ Project management. Uses internal PostgreSQL.
 
 - **Default login**: admin / admin
 - **Calendar sync**: Bidirectional sync with Google Calendar (milestones only)
-
----
-
-# obsidian-livesync
-
-Self-hosted Obsidian sync using CouchDB.
-
-**Status**: Currently stopped (to free server resources). Start with:
-```bash
-ssh ubuntu@13.54.159.183 "cd ~/apps/obsidian-livesync && docker-compose up -d"
-```
-
-**RAM**: ~128-256 MB
-
-## Current Configuration
-
-| Setting | Value |
-|---------|-------|
-| Server | https://obsidian.enspyr.co |
-| Database | `notes` |
-| Users | `nick`/`nick`, `robin`/`robin` |
-| E2EE | Disabled |
-| Sync Mode | LiveSync (real-time) |
-
-## Setup New Device
-
-1. Install Obsidian and create a vault (NOT in iCloud)
-2. Install "Self-hosted LiveSync" plugin
-3. Select "I am adding a device to an existing synchronisation setup"
-4. Select "Enter the server information manually" → "CouchDB"
-5. Enter: URL `https://obsidian.enspyr.co`, username, password, database `notes`
-6. Click "Detect and Fix CouchDB Issues"
-7. Go through setup wizard, select "This Vault is empty..."
-8. After setup: Settings → Sync Settings → set Sync Mode to **LiveSync**
-9. If sync doesn't work, restart Obsidian
-
-## Server Deployment
-
-```bash
-cd obsidian-livesync
-cp .env.example .env
-# Edit .env with your values
-docker compose up -d
-```
-
-CouchDB is auto-configured for LiveSync (CORS, max doc size) by `deploy-to.sh`.
 
 ---
 

@@ -6,10 +6,6 @@ calendar-sync.enspyr.co {
     reverse_proxy localhost:3001
 }
 
-obsidian.enspyr.co {
-    reverse_proxy localhost:5984
-}
-
 wiki.enspyr.co {
     reverse_proxy localhost:3002
 }

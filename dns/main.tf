@@ -20,14 +20,6 @@ resource "namecheap_domain_records" "enspyr" {
     ttl      = 1800
   }
 
-  # Obsidian LiveSync
-  record {
-    hostname = "obsidian"
-    type     = "A"
-    address  = var.lightsail_ip
-    ttl      = 1800
-  }
-
   # Outline Wiki
   record {
     hostname = "wiki"
