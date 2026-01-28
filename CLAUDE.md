@@ -199,6 +199,30 @@ Self-hosted Obsidian sync using CouchDB.
 
 **RAM**: ~128-256 MB
 
+## Current Configuration
+
+| Setting | Value |
+|---------|-------|
+| Server | https://obsidian.enspyr.co |
+| Database | `notes` |
+| Users | `nick`/`nick`, `robin`/`robin` |
+| E2EE | Disabled |
+| Sync Mode | LiveSync (real-time) |
+
+## Setup New Device
+
+1. Install Obsidian and create a vault (NOT in iCloud)
+2. Install "Self-hosted LiveSync" plugin
+3. Select "I am adding a device to an existing synchronisation setup"
+4. Select "Enter the server information manually" → "CouchDB"
+5. Enter: URL `https://obsidian.enspyr.co`, username, password, database `notes`
+6. Click "Detect and Fix CouchDB Issues"
+7. Go through setup wizard, select "This Vault is empty..."
+8. After setup: Settings → Sync Settings → set Sync Mode to **LiveSync**
+9. If sync doesn't work, restart Obsidian
+
+## Server Deployment
+
 ```bash
 cd obsidian-livesync
 cp .env.example .env
@@ -206,4 +230,4 @@ cp .env.example .env
 docker compose up -d
 ```
 
-After starting, configure CouchDB for LiveSync (CORS, database). See `obsidian-livesync/CLAUDE.md`.
+CouchDB is auto-configured for LiveSync (CORS, max doc size) by `deploy-to.sh`.
