@@ -200,16 +200,46 @@ EOF
 deploy_outline() {
     echo "Deploying Outline Wiki..."
 
-    # Check for .env file
-    if [ ! -f "$REPO_ROOT/outline/.env" ]; then
-        echo "ERROR: outline/.env not found"
-        echo "Create it from .env.example first"
+    local OUTLINE_SECRETS="$REPO_ROOT/outline/secrets.yaml"
+
+    # Check for secrets file
+    if [ ! -f "$OUTLINE_SECRETS" ]; then
+        echo "ERROR: outline/secrets.yaml not found"
+        echo "Create it and encrypt with: sops -e -i outline/secrets.yaml"
         return 1
     fi
 
+    # Generate .env from encrypted secrets
+    echo "Generating .env from encrypted secrets..."
+    sops -d "$OUTLINE_SECRETS" | yq -r '"# Outline Configuration (auto-generated from secrets.yaml)
+OUTLINE_URL=\(.outline_url)
+
+# Generated secrets
+SECRET_KEY=\(.secret_key)
+UTILS_SECRET=\(.utils_secret)
+
+# Postgres
+POSTGRES_PASSWORD=\(.postgres_password)
+
+# MinIO (S3-compatible storage)
+MINIO_ROOT_USER=\(.minio_root_user)
+MINIO_ROOT_PASSWORD=\(.minio_root_password)
+MINIO_URL=\(.minio_url)
+
+# SMTP
+SMTP_HOST=\(.smtp_host)
+SMTP_PORT=\(.smtp_port)
+SMTP_USERNAME=\(.smtp_username)
+SMTP_PASSWORD=\(.smtp_password)
+SMTP_FROM_EMAIL=\(.smtp_from_email)
+SMTP_SECURE=\(.smtp_secure)"' > "$REPO_ROOT/outline/.env"
+
     # Deploy files
     ssh $REMOTE "mkdir -p ~/apps/outline"
-    rsync -avz --delete "$REPO_ROOT/outline/" $REMOTE:~/apps/outline/
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/outline/" $REMOTE:~/apps/outline/
+
+    # Clean up local .env
+    rm -f "$REPO_ROOT/outline/.env"
 
     # Start Outline
     ssh $REMOTE "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
