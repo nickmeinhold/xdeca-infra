@@ -11,7 +11,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── dns/                # Namecheap DNS (Terraform)
 ├── kanbn/              # Kanban boards (Trello alternative)
-├── openproject/        # Project management + calendar sync
 ├── outline/            # Team wiki (Notion alternative)
 ├── oci-vps/            # Oracle Cloud provisioning
 ├── lightsail/          # AWS Lightsail VPS (primary)
@@ -25,28 +24,22 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Service | Port | URL | Description |
 |---------|------|-----|-------------|
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
-| OpenProject | 8080 | openproject.enspyr.co | Project management |
-| Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
-| Outline | 3002 | wiki.enspyr.co | Team wiki (Notion-like) |
-| MinIO (Outline storage) | 9000 | storage.enspyr.co | S3-compatible file storage |
 | Kan.bn | 3003 | kanbn.enspyr.co | Kanban boards (Trello-like) |
+| Outline | 3002 | wiki.enspyr.co | Team wiki (Notion-like) |
+| MinIO | 9000 | storage.enspyr.co | S3-compatible file storage |
+| ~~OpenProject~~ | ~~8080~~ | ~~openproject.enspyr.co~~ | Stopped (replaced by Kan.bn) |
 
 ## Integrations
 
-| Integration | Trigger | Action |
-|-------------|---------|--------|
-| OpenProject ↔ Google Calendar | Bidirectional | Milestones sync via VPS webhook server |
+| Integration | Status | Description |
+|-------------|--------|-------------|
+| Kan.bn ↔ Google Calendar | Pending | Waiting for webhook PR to be merged |
 
-### Calendar Sync Architecture
+### Calendar Sync (Pending)
 
-```
-OpenProject ──webhook──▶ VPS ──▶ Google Calendar
-Google Calendar ──push──▶ VPS ──▶ OpenProject
-```
+Contributed webhooks to Kan.bn: https://github.com/kanbn/kan/pull/343
 
-Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
-
-**Status**: Automated via IaC. First deploy requires secrets setup. See `openproject/CLAUDE.md`.
+Once merged, will enable bidirectional sync between Kan.bn card due dates and Google Calendar.
 
 ## Backups
 
@@ -54,20 +47,15 @@ Daily backups to AWS S3.
 
 | Service | Schedule | Retention |
 |---------|----------|-----------|
-| OpenProject | 4 AM | 7 days |
+| Kan.bn | 4 AM | 7 days |
+| Outline | 4 AM | 7 days |
 
 **Status**: Automated via IaC. First deploy requires `backups/secrets.yaml`. See `docs/backups.md`.
 
-**Auto-restore**: On `make deploy`, if databases are empty and backups exist, restores automatically.
-
 ```bash
-# Disaster recovery (auto-restores)
-make apply && make deploy
-
 # Manual commands
 make backup-now    # Run backup
 make backup-test   # Test connection
-make restore       # Force restore from latest
 ```
 
 ## Cloud Providers
@@ -180,21 +168,10 @@ make apply   # Apply (requires whitelisted IP - run from Pi)
 Reverse proxy with automatic HTTPS via Let's Encrypt.
 
 ```
-Internet → Caddy (443/80) → OpenProject (8080)
-                          → Calendar Sync (3001)
+Internet → Caddy (443/80) → Kan.bn (3003)
                           → Outline (3002)
                           → MinIO Storage (9000)
-                          → Kan.bn (3003)
 ```
-
----
-
-# openproject
-
-Project management. Uses internal PostgreSQL.
-
-- **Default login**: admin / admin
-- **Calendar sync**: Bidirectional sync with Google Calendar (milestones only)
 
 ---
 
