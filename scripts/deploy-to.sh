@@ -289,7 +289,7 @@ WEBHOOK_SECRET=\(.webhook_secret)"' > "$REPO_ROOT/kanbn/.env"
     rm -f "$REPO_ROOT/kanbn/.env"
 
     # Build and start Kan.bn (builds from 10xdeca/kan fork)
-    ssh $REMOTE "cd ~/apps/kanbn && docker-compose build --pull && docker-compose up -d"
+    ssh $REMOTE "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker-compose build --pull && docker-compose up -d"
 
     echo "Kan.bn deployed!"
     echo "  URL: https://kanbn.enspyr.co"
