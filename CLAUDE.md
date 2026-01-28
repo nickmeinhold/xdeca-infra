@@ -10,6 +10,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── caddy/              # Reverse proxy (Caddy)
 ├── cloudflare/         # Cloudflare Terraform (unused)
 ├── dns/                # Namecheap DNS (Terraform)
+├── kanbn/              # Kanban boards (Trello alternative)
 ├── openproject/        # Project management + calendar sync
 ├── outline/            # Team wiki (Notion alternative)
 ├── oci-vps/            # Oracle Cloud provisioning
@@ -258,8 +259,25 @@ Self-hosted kanban boards (Trello alternative). Lightweight and fast.
 - Trello-like kanban boards
 - Drag and drop cards
 - Labels and filters
-- Trello import
+- Trello import (boards, cards, lists)
+- File attachments (via shared MinIO storage)
 - Email/password login
+
+## Storage
+
+Uses shared MinIO instance from Outline for file attachments:
+- Buckets: `kanbn-avatars`, `kanbn-attachments`
+- Public URL: https://storage.enspyr.co
+
+## Trello Migration
+
+Kan.bn has built-in Trello import via OAuth. To import:
+
+1. Go to Settings → Integrations → Connect Trello
+2. Authorize the connection
+3. Select boards to import
+
+**Note**: Attachments are NOT imported automatically. Use the Trello API to download attachments separately if needed.
 
 ## Setup
 
