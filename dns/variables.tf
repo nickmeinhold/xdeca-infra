@@ -11,7 +11,7 @@ variable "namecheap_api_key" {
 }
 
 variable "lightsail_ip" {
-  description = "AWS Lightsail VPS IP address"
+  description = "AWS Lightsail VPS static IP (from lightsail/terraform output public_ip)"
   type        = string
   default     = "13.54.159.183"
 }
