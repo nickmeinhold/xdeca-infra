@@ -10,7 +10,6 @@ Infrastructure monorepo for self-hosted services.
 |---------|-------------|-----|
 | [Caddy](./caddy/) | Reverse proxy with automatic HTTPS | - |
 | [OpenProject](./openproject/) | Project management | openproject.enspyr.co |
-| [Twenty](./twenty/) | CRM (Salesforce alternative) | twenty.enspyr.co |
 | Calendar Sync | OpenProject ↔ Google Calendar | calendar-sync.enspyr.co |
 
 ## Infrastructure
@@ -26,7 +25,6 @@ Infrastructure monorepo for self-hosted services.
 
 ```
 Internet → Caddy (443/80) → OpenProject (8080)
-                          → Twenty (3000)
                           → Calendar Sync (3001)
 
 OpenProject ──webhook──▶ Calendar Sync ──▶ Google Calendar
@@ -88,7 +86,6 @@ make apply
 │       ├── sync.ts
 │       ├── reverse-sync.ts
 │       └── secrets.yaml    # SOPS-encrypted
-├── twenty/                 # CRM
 ├── kamatera-vps/           # Kamatera VPS (primary)
 │   └── terraform/
 │       ├── main.tf

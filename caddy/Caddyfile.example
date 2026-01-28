@@ -5,6 +5,6 @@ openproject.example.com {
     reverse_proxy localhost:8080
 }
 
-twenty.example.com {
-    reverse_proxy localhost:3000
+calendar-sync.example.com {
+    reverse_proxy localhost:3001
 }

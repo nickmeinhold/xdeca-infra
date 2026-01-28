@@ -1,9 +1,8 @@
 # Oracle Cloud Free Tier Setup Guide
-## OpenProject + Twenty + Discourse on Podman
+## OpenProject + Discourse on Podman
 
-This guide sets up three self-hosted apps on Oracle's free ARM instance:
+This guide sets up self-hosted apps on Oracle's free ARM instance:
 - **OpenProject** - Project management
-- **Twenty** - CRM (Salesforce alternative)
 - **Discourse** - Forum/community platform
 
 **Total cost: $0/month**
@@ -91,7 +90,7 @@ sudo loginctl enable-linger opc
 ## Step 6: Set Up Directory Structure
 
 ```bash
-mkdir -p ~/apps/{openproject,twenty,discourse,caddy}
+mkdir -p ~/apps/{openproject,discourse,caddy}
 cd ~/apps
 ```
 
@@ -145,102 +144,7 @@ podman-compose logs -f
 
 ---
 
-## Step 8: Set Up Twenty CRM
-
-```bash
-cd ~/apps/twenty
-
-# Generate secrets
-ACCESS_SECRET=$(openssl rand -hex 32)
-LOGIN_SECRET=$(openssl rand -hex 32)
-REFRESH_SECRET=$(openssl rand -hex 32)
-FILE_SECRET=$(openssl rand -hex 32)
-POSTGRES_PASSWORD=$(openssl rand -hex 16)
-
-cat > docker-compose.yml << 'EOF'
-version: "3.8"
-
-services:
-  db:
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      - POSTGRES_USER=twenty
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=twenty
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:alpine
-    restart: always
-    volumes:
-      - redis_data:/data
-
-  server:
-    image: twentycrm/twenty:latest
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - SERVER_URL=https://twenty.yourdomain.com
-      - FRONT_BASE_URL=https://twenty.yourdomain.com
-      - PG_DATABASE_URL=postgres://twenty:${POSTGRES_PASSWORD}@db:5432/twenty
-      - REDIS_URL=redis://redis:6379
-      - ACCESS_TOKEN_SECRET=${ACCESS_SECRET}
-      - LOGIN_TOKEN_SECRET=${LOGIN_SECRET}
-      - REFRESH_TOKEN_SECRET=${REFRESH_SECRET}
-      - FILE_TOKEN_SECRET=${FILE_SECRET}
-      - STORAGE_TYPE=local
-      - STORAGE_LOCAL_PATH=.local-storage
-    volumes:
-      - server_data:/app/.local-storage
-    depends_on:
-      - db
-      - redis
-
-  worker:
-    image: twentycrm/twenty:latest
-    restart: always
-    command: ["yarn", "worker:prod"]
-    environment:
-      - SERVER_URL=https://twenty.yourdomain.com
-      - PG_DATABASE_URL=postgres://twenty:${POSTGRES_PASSWORD}@db:5432/twenty
-      - REDIS_URL=redis://redis:6379
-      - ACCESS_TOKEN_SECRET=${ACCESS_SECRET}
-      - LOGIN_TOKEN_SECRET=${LOGIN_SECRET}
-      - REFRESH_TOKEN_SECRET=${REFRESH_SECRET}
-      - FILE_TOKEN_SECRET=${FILE_SECRET}
-      - STORAGE_TYPE=local
-      - STORAGE_LOCAL_PATH=.local-storage
-    volumes:
-      - server_data:/app/.local-storage
-    depends_on:
-      - db
-      - redis
-
-volumes:
-  postgres_data:
-  redis_data:
-  server_data:
-EOF
-
-# Create .env file
-cat > .env << EOF
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-ACCESS_SECRET=$ACCESS_SECRET
-LOGIN_SECRET=$LOGIN_SECRET
-REFRESH_SECRET=$REFRESH_SECRET
-FILE_SECRET=$FILE_SECRET
-EOF
-
-# Start Twenty
-podman-compose up -d
-```
-
----
-
-## Step 9: Set Up Discourse (Podman)
+## Step 8: Set Up Discourse (Podman)
 
 ```bash
 cd ~/apps/discourse
@@ -281,7 +185,7 @@ Then bootstrap and start:
 
 ---
 
-## Step 10: Set Up Caddy Reverse Proxy
+## Step 9: Set Up Caddy Reverse Proxy
 
 Caddy handles HTTPS automatically with Let's Encrypt.
 
@@ -311,10 +215,6 @@ openproject.yourdomain.com {
     reverse_proxy localhost:8080
 }
 
-twenty.yourdomain.com {
-    reverse_proxy localhost:3000
-}
-
 discourse.yourdomain.com {
     reverse_proxy localhost:8888
 }
@@ -325,26 +225,24 @@ podman-compose up -d
 
 ---
 
-## Step 11: Configure DNS
+## Step 10: Configure DNS
 
 Point your domains to your Oracle instance's public IP:
 
 | Type | Name | Value |
 |------|------|-------|
 | A | openproject | <your-instance-ip> |
-| A | twenty | <your-instance-ip> |
 | A | discourse | <your-instance-ip> |
 
 DNS propagation can take a few minutes to a few hours.
 
 ---
 
-## Step 12: Verify Everything Works
+## Step 11: Verify Everything Works
 
 Once DNS propagates:
 
 - **OpenProject**: https://openproject.yourdomain.com (admin/admin)
-- **Twenty**: https://twenty.yourdomain.com (create account on first visit)
 - **Discourse**: https://discourse.yourdomain.com (follow setup wizard)
 
 ---
@@ -359,13 +257,13 @@ podman ps
 cd ~/apps/openproject && podman-compose logs -f
 
 # Restart a service
-cd ~/apps/twenty && podman-compose restart
+cd ~/apps/openproject && podman-compose restart
 
 # Stop a service
 cd ~/apps/openproject && podman-compose down
 
 # Update images
-cd ~/apps/twenty && podman-compose pull && podman-compose up -d
+cd ~/apps/openproject && podman-compose pull && podman-compose up -d
 
 # Check resource usage
 podman stats
@@ -410,10 +308,6 @@ mkdir -p $BACKUP_DIR
 # OpenProject
 podman exec openproject_openproject_1 pg_dump -U postgres openproject > $BACKUP_DIR/openproject.sql
 
-# Twenty
-cd ~/apps/twenty
-podman exec twenty_db_1 pg_dump -U twenty twenty > $BACKUP_DIR/twenty.sql
-
 # Discourse
 cd ~/apps/discourse
 ./launcher enter app
@@ -433,10 +327,9 @@ chmod +x ~/backup.sh
 | Service | RAM | CPU |
 |---------|-----|-----|
 | OpenProject | ~2GB | Low |
-| Twenty | ~1.5GB | Low |
 | Discourse | ~2GB | Low-Medium |
 | Caddy | ~50MB | Minimal |
-| **Total** | ~6GB | Plenty of headroom |
+| **Total** | ~4GB | Plenty of headroom |
 
 You have 24GB RAM, so you could add more services if needed!
 

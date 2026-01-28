@@ -58,14 +58,12 @@ write_files:
 
       ## Services
       - OpenProject: https://openproject.${domain}
-      - Twenty CRM: https://twenty.${domain}
       - Discourse: https://discourse.${domain}
 
       ## Directory Structure
       ~/apps/
         caddy/       - Reverse proxy
         openproject/ - Project management
-        twenty/      - CRM
         discourse/   - Forum
 
       ## Commands

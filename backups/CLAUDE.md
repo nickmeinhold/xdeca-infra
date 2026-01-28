@@ -1,15 +1,12 @@
 # Backups
 
-Automated backups to Oracle Cloud Object Storage (Archive tier).
+Automated backups to AWS S3.
 
 ## Overview
 
 | Service | What | Schedule | Retention |
 |---------|------|----------|-----------|
 | OpenProject | PostgreSQL | Daily 4 AM | 7 days |
-| Twenty | PostgreSQL + storage | Daily 4 AM | 7 days |
-
-**Storage**: Oracle Archive tier (~1 hour restore time, first 10GB free).
 
 ## Setup
 
@@ -68,7 +65,7 @@ rclone ls oci-archive:xdeca-backups/
 sudo /opt/scripts/restore.sh openproject
 
 # Specific date
-sudo /opt/scripts/restore.sh twenty 2024-01-15
+sudo /opt/scripts/restore.sh openproject 2024-01-15
 ```
 
 See `docs/backups.md` for full restore procedures.

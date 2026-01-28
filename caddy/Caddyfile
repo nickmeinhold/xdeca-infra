@@ -2,10 +2,6 @@ openproject.enspyr.co {
     reverse_proxy localhost:8080
 }
 
-twenty.enspyr.co {
-    reverse_proxy localhost:3000
-}
-
 calendar-sync.enspyr.co {
     reverse_proxy localhost:3001
 }

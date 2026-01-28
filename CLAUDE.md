@@ -12,7 +12,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── dns/                # Namecheap DNS (Terraform)
 ├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
-├── twenty/             # CRM (Twenty)
 ├── oci-vps/            # Oracle Cloud provisioning
 ├── lightsail/          # AWS Lightsail VPS (primary)
 ├── scripts/            # Deployment & backup scripts
@@ -26,7 +25,6 @@ Monorepo for xdeca infrastructure and self-hosted services.
 |---------|------|-----|-------------|
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
 | OpenProject | 8080 | openproject.enspyr.co | Project management |
-| Twenty | 3000 | twenty.enspyr.co | CRM |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
 | Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 
@@ -49,12 +47,11 @@ Self-hosted webhook server on VPS. Events appear at 12pm Melbourne time.
 
 ## Backups
 
-Daily backups to Oracle Cloud Object Storage (Standard tier, first 10GB free).
+Daily backups to AWS S3.
 
 | Service | Schedule | Retention |
 |---------|----------|-----------|
 | OpenProject | 4 AM | 7 days |
-| Twenty | 4 AM | 7 days |
 
 **Status**: Automated via IaC. First deploy requires `backups/secrets.yaml`. See `docs/backups.md`.
 
@@ -181,7 +178,6 @@ Reverse proxy with automatic HTTPS via Let's Encrypt.
 
 ```
 Internet → Caddy (443/80) → OpenProject (8080)
-                          → Twenty (3000)
                           → Calendar Sync (3001)
 ```
 
@@ -193,12 +189,6 @@ Project management. Uses internal PostgreSQL.
 
 - **Default login**: admin / admin
 - **Calendar sync**: Bidirectional sync with Google Calendar (milestones only)
-
----
-
-# twenty
-
-CRM (Salesforce alternative). Requires PostgreSQL + Redis.
 
 ---
 

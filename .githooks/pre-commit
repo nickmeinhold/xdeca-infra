@@ -4,7 +4,6 @@
 # Files that should be SOPS-encrypted if they exist
 SECRET_PATTERNS=(
   "openproject/*.yaml"
-  "twenty/*.yaml"
   "discourse/*.yaml"
 )
 

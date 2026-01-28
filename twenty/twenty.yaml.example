@@ -1,9 +1,0 @@
-# Example secrets file (this file is NOT encrypted)
-# Copy to twenty.yaml and encrypt with: sops -e -i twenty.yaml
-
-hostname: twenty.example.com
-postgres_password: your-16-char-hex-secret
-access_token_secret: your-32-char-hex-secret
-login_token_secret: your-32-char-hex-secret
-refresh_token_secret: your-32-char-hex-secret
-file_token_secret: your-32-char-hex-secret

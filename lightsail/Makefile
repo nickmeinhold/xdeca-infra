@@ -21,4 +21,4 @@ ssh:
 	ssh ubuntu@$$(cd $(TERRAFORM_DIR) && terraform output -raw public_ip)
 
 deploy:
-	../scripts/deploy-to.sh $$(cd $(TERRAFORM_DIR) && terraform output -raw public_ip) ubuntu
+	../scripts/deploy-to.sh $$(cd $(TERRAFORM_DIR) && terraform output -raw public_ip) all

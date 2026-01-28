@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy services to xdeca VPS
 # Usage: ./scripts/deploy.sh [service]
-# Services: all, caddy, openproject, twenty, discourse, scripts
+# Services: all, caddy, openproject, discourse, scripts
 
 set -e
 
@@ -20,10 +20,6 @@ decrypt_secrets() {
 
     if [ -f "$REPO_ROOT/openproject/secrets.yaml" ]; then
         sops -d "$REPO_ROOT/openproject/secrets.yaml" | yq -r '"OPENPROJECT_HOSTNAME=\(.hostname)\nOPENPROJECT_SECRET_KEY_BASE=\(.secret_key_base)"' > "$REPO_ROOT/openproject/.env"
-    fi
-
-    if [ -f "$REPO_ROOT/twenty/secrets.yaml" ]; then
-        sops -d "$REPO_ROOT/twenty/secrets.yaml" | yq -r '"TWENTY_HOSTNAME=\(.hostname)\nPOSTGRES_PASSWORD=\(.postgres_password)\nACCESS_TOKEN_SECRET=\(.access_token_secret)\nLOGIN_TOKEN_SECRET=\(.login_token_secret)\nREFRESH_TOKEN_SECRET=\(.refresh_token_secret)\nFILE_TOKEN_SECRET=\(.file_token_secret)"' > "$REPO_ROOT/twenty/.env"
     fi
 }
 
@@ -95,13 +91,12 @@ case $SERVICE in
         deploy_scripts
         deploy_service caddy
         deploy_service openproject
-        deploy_service twenty
         deploy_discourse
         ;;
     scripts)
         deploy_scripts
         ;;
-    caddy|openproject|twenty)
+    caddy|openproject)
         deploy_service $SERVICE
         ;;
     discourse)
@@ -109,7 +104,7 @@ case $SERVICE in
         ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 [all|caddy|openproject|twenty|discourse|scripts]"
+        echo "Usage: $0 [all|caddy|openproject|discourse|scripts]"
         exit 1
         ;;
 esac

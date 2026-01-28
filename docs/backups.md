@@ -1,13 +1,12 @@
 # Backup & Restore
 
-All services backup to **Cloudflare R2** (Standard tier).
+All services backup to **AWS S3**.
 
 ## Overview
 
 | Service | What's Backed Up | Schedule | Retention |
 |---------|------------------|----------|-----------|
 | OpenProject | PostgreSQL database | Daily 4 AM | 7 days |
-| Twenty | PostgreSQL + local storage | Daily 4 AM | 7 days |
 
 ## Cost
 
@@ -61,15 +60,13 @@ sudo /opt/scripts/backup.sh all
 
 # Single service
 sudo /opt/scripts/backup.sh openproject
-sudo /opt/scripts/backup.sh twenty
 ```
 
 ### List Remote Backups
 
 ```bash
-rclone ls oci-archive:xdeca-backups/
-rclone ls oci-archive:xdeca-backups/openproject/
-rclone ls oci-archive:xdeca-backups/twenty/
+rclone ls s3:xdeca-backups/
+rclone ls s3:xdeca-backups/openproject/
 ```
 
 ### Check Backup Logs
@@ -91,7 +88,7 @@ Using Standard tier storage - **no restore delay**, objects are immediately avai
 ### Auto-Restore on Deploy
 
 When running `make deploy`, the system automatically:
-1. Checks if OpenProject/Twenty are empty (fresh install)
+1. Checks if OpenProject is empty (fresh install)
 2. If empty AND backups exist, restores from latest backup
 3. Skips restore if data already exists
 
@@ -106,7 +103,6 @@ make deploy   # Deploy services + auto-restore from backup
 | Service | Fresh Install Detected When |
 |---------|----------------------------|
 | OpenProject | `users` table has ≤1 row |
-| Twenty | `workspace` table is empty |
 
 ### Manual Restore
 
@@ -120,11 +116,9 @@ make restore
 ```bash
 # Restore latest backup
 sudo /opt/scripts/restore.sh openproject
-sudo /opt/scripts/restore.sh twenty
 
 # Restore specific date
 sudo /opt/scripts/restore.sh openproject 2024-01-15
-sudo /opt/scripts/restore.sh twenty 2024-01-15
 ```
 
 ### OpenProject Restore
@@ -136,18 +130,6 @@ sudo /opt/scripts/restore.sh twenty 2024-01-15
 
 ```bash
 sudo /opt/scripts/restore.sh openproject
-```
-
-### Twenty Restore
-
-1. Script stops Twenty
-2. Downloads database and storage backups
-3. Restores PostgreSQL database
-4. Restores local file storage
-5. Restarts Twenty
-
-```bash
-sudo /opt/scripts/restore.sh twenty
 ```
 
 ## Troubleshooting
@@ -166,7 +148,7 @@ tail -50 /var/log/backup.log
 
 ```bash
 # Test connection
-rclone lsd oci-archive:
+rclone lsd s3:
 
 # Check config
 cat ~/.config/rclone/rclone.conf
@@ -195,4 +177,3 @@ Status meanings:
 | Service | Remote Path | Contents |
 |---------|-------------|----------|
 | OpenProject | `xdeca-backups/openproject/` | `openproject-YYYY-MM-DD.sql.gz` |
-| Twenty | `xdeca-backups/twenty/` | `twenty-db-YYYY-MM-DD.sql.gz`, `twenty-storage-YYYY-MM-DD.tar.gz` |
