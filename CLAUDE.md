@@ -12,6 +12,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── dns/                # Namecheap DNS (Terraform)
 ├── obsidian-livesync/  # Obsidian sync (CouchDB)
 ├── openproject/        # Project management + calendar sync
+├── outline/            # Team wiki (Notion alternative)
 ├── oci-vps/            # Oracle Cloud provisioning
 ├── lightsail/          # AWS Lightsail VPS (primary)
 ├── scripts/            # Deployment & backup scripts
@@ -27,6 +28,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | OpenProject | 8080 | openproject.enspyr.co | Project management |
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
 | Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
+| Outline | 3002 | wiki.enspyr.co | Team wiki (Notion-like) |
 
 ## Integrations
 
@@ -180,6 +182,7 @@ Reverse proxy with automatic HTTPS via Let's Encrypt.
 Internet → Caddy (443/80) → OpenProject (8080)
                           → Calendar Sync (3001)
                           → Obsidian LiveSync (5984)
+                          → Outline (3002)
 ```
 
 ---
@@ -231,3 +234,31 @@ docker compose up -d
 ```
 
 CouchDB is auto-configured for LiveSync (CORS, max doc size) by `deploy-to.sh`.
+
+---
+
+# outline
+
+Self-hosted team wiki (Notion alternative). Real-time collaboration with edit history.
+
+**URL**: https://wiki.enspyr.co
+
+## Features
+
+- Wiki-style linking between documents
+- Real-time collaboration (see cursors, who's editing)
+- Edit history with attribution
+- Google OAuth login
+- Markdown support
+
+## Setup
+
+1. Create Google OAuth credentials at https://console.cloud.google.com/apis/credentials
+   - Authorized redirect URI: `https://wiki.enspyr.co/auth/google.callback`
+2. Copy `.env.example` to `.env` and fill in values
+3. Generate secrets: `openssl rand -hex 32`
+4. Deploy: `./scripts/deploy-to.sh <ip> outline`
+
+## First Login
+
+First user to sign in becomes admin. Add team members from Settings → Members.

@@ -9,3 +9,7 @@ calendar-sync.enspyr.co {
 obsidian.enspyr.co {
     reverse_proxy localhost:5984
 }
+
+wiki.enspyr.co {
+    reverse_proxy localhost:3002
+}

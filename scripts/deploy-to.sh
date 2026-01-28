@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy services to any VPS
 # Usage: ./scripts/deploy-to.sh <ip> [service]
-# Services: all, caddy, openproject, calendar-sync, obsidian-livesync, backups, scripts
+# Services: all, caddy, openproject, calendar-sync, obsidian-livesync, outline, backups, scripts
 
 set -e
 
@@ -197,6 +197,28 @@ EOF
     echo "Test with: ssh $REMOTE 'rclone lsd s3:'"
 }
 
+deploy_outline() {
+    echo "Deploying Outline Wiki..."
+
+    # Check for .env file
+    if [ ! -f "$REPO_ROOT/outline/.env" ]; then
+        echo "ERROR: outline/.env not found"
+        echo "Create it from .env.example first"
+        return 1
+    fi
+
+    # Deploy files
+    ssh $REMOTE "mkdir -p ~/apps/outline"
+    rsync -avz --delete "$REPO_ROOT/outline/" $REMOTE:~/apps/outline/
+
+    # Start Outline
+    ssh $REMOTE "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
+
+    echo "Outline deployed!"
+    echo "  URL: https://wiki.enspyr.co"
+    echo "  Note: First user to sign in becomes admin"
+}
+
 deploy_obsidian_livesync() {
     echo "Deploying Obsidian LiveSync (CouchDB)..."
 
@@ -313,6 +335,7 @@ case $SERVICE in
         deploy_service openproject
         deploy_calendar_sync
         deploy_obsidian_livesync
+        deploy_outline
         auto_restore
         ;;
     scripts)
@@ -330,13 +353,16 @@ case $SERVICE in
     obsidian-livesync|obsidian)
         deploy_obsidian_livesync
         ;;
+    outline|wiki)
+        deploy_outline
+        ;;
     restore)
         restore_openproject
         echo "Restore complete!"
         ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 <ip> [all|caddy|openproject|calendar-sync|obsidian-livesync|backups|scripts|restore]"
+        echo "Usage: $0 <ip> [all|caddy|openproject|calendar-sync|obsidian-livesync|outline|backups|scripts|restore]"
         exit 1
         ;;
 esac
