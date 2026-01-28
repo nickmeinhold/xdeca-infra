@@ -1,6 +1,6 @@
 services:
   kanbn:
-    build: https://github.com/10xdeca/kan.git
+    build: https://github.com/10xdeca/kan.git#main
     image: kanbn:local
     container_name: kanbn
     restart: unless-stopped
