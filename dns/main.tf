@@ -35,4 +35,12 @@ resource "namecheap_domain_records" "enspyr" {
     address  = var.lightsail_ip
     ttl      = 1800
   }
+
+  # Outline Storage (MinIO)
+  record {
+    hostname = "storage"
+    type     = "A"
+    address  = var.lightsail_ip
+    ttl      = 1800
+  }
 }

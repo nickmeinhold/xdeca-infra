@@ -29,6 +29,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 | Calendar Sync | 3001 | calendar-sync.enspyr.co | OpenProject ↔ Google Calendar |
 | Obsidian LiveSync | 5984 | obsidian.enspyr.co | Obsidian vault sync |
 | Outline | 3002 | wiki.enspyr.co | Team wiki (Notion-like) |
+| MinIO (Outline storage) | 9000 | storage.enspyr.co | S3-compatible file storage |
 
 ## Integrations
 
