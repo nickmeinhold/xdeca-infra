@@ -1,7 +1,7 @@
 # DNS records for xdeca services on AWS Lightsail
 
 resource "namecheap_domain_records" "enspyr" {
-  domain = var.domain
+  domain = "enspyr.co"
   mode   = "MERGE"
 
   # OpenProject
@@ -20,6 +20,19 @@ resource "namecheap_domain_records" "enspyr" {
     ttl      = 1800
   }
 
+  # Outline Storage (MinIO)
+  record {
+    hostname = "storage"
+    type     = "A"
+    address  = var.lightsail_ip
+    ttl      = 1800
+  }
+}
+
+resource "namecheap_domain_records" "xdeca" {
+  domain = "xdeca.com"
+  mode   = "MERGE"
+
   # Outline Wiki
   record {
     hostname = "wiki"
@@ -28,17 +41,9 @@ resource "namecheap_domain_records" "enspyr" {
     ttl      = 1800
   }
 
-  # Outline Storage (MinIO)
+  # Kan.bn (Tasks)
   record {
-    hostname = "storage"
-    type     = "A"
-    address  = var.lightsail_ip
-    ttl      = 1800
-  }
-
-  # Kan.bn (Kanban)
-  record {
-    hostname = "kanbn"
+    hostname = "tasks"
     type     = "A"
     address  = var.lightsail_ip
     ttl      = 1800
