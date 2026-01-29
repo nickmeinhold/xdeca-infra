@@ -1,10 +1,17 @@
 #!/bin/bash
-# Set up backup infrastructure on VPS
-# Run this once after provisioning
+# Legacy backup setup script for OCI
+#
+# NOTE: For AWS Lightsail deployments, use:
+#   ./scripts/deploy-to.sh <ip> backups
+#
+# This script is kept for reference if OCI provisioning succeeds.
 
 set -e
 
 echo "=== xdeca Backup Setup ==="
+echo ""
+echo "This script is for OCI deployments."
+echo "For AWS Lightsail, use: ./scripts/deploy-to.sh <ip> backups"
 echo ""
 
 # Install rclone if not present
@@ -82,7 +89,8 @@ echo "Setting up backup script..."
 
 sudo mkdir -p /opt/scripts
 sudo cp "$(dirname "$0")/backup.sh" /opt/scripts/backup.sh
-sudo chmod +x /opt/scripts/backup.sh
+sudo cp "$(dirname "$0")/restore.sh" /opt/scripts/restore.sh
+sudo chmod +x /opt/scripts/*.sh
 
 # Set up cron job (runs at 4 AM daily)
 echo ""
@@ -98,7 +106,8 @@ echo "Backups will run daily at 4 AM"
 echo "Retention: 7 days"
 echo ""
 echo "Manual commands:"
-echo "  sudo /opt/scripts/backup.sh all       # Run all backups"
-echo "  sudo /opt/scripts/backup.sh openproject  # Backup OpenProject only"
-echo "  rclone ls oci-archive:xdeca-backups   # List remote backups"
-echo "  tail -f /var/log/backup.log           # Watch backup logs"
+echo "  /opt/scripts/backup.sh all          # Run all backups"
+echo "  /opt/scripts/backup.sh kanbn        # Backup Kan.bn only"
+echo "  /opt/scripts/backup.sh outline      # Backup Outline only"
+echo "  rclone ls oci-archive:xdeca-backups # List remote backups"
+echo "  tail -f /var/log/backup.log         # Watch backup logs"

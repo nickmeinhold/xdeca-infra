@@ -6,23 +6,12 @@ Automated backups to AWS S3.
 
 | Service | What | Schedule | Retention |
 |---------|------|----------|-----------|
-| OpenProject | PostgreSQL | Daily 4 AM | 7 days |
+| Kan.bn | PostgreSQL | Daily 4 AM | 7 days |
+| Outline | PostgreSQL | Daily 4 AM | 7 days |
 
 ## Setup
 
-### 1. Create OCI Customer Secret Key
-
-```bash
-# Get namespace
-oci os ns get
-
-# Then in OCI Console:
-# Identity → Users → Your User → Customer Secret Keys → Generate
-# Name: rclone-backups
-# COPY THE SECRET KEY (shown only once!)
-```
-
-### 2. Create and Encrypt Secrets
+### 1. Create and Encrypt Secrets
 
 ```bash
 cd backups
@@ -31,41 +20,45 @@ cp secrets.yaml.example secrets.yaml
 sops -e -i secrets.yaml
 ```
 
-### 3. Deploy
+### 2. Deploy
 
 ```bash
-cd kamatera-vps
-make deploy-backups
+./scripts/deploy-to.sh <ip> backups
 ```
 
 This will:
-- Generate rclone config from secrets
+- Deploy AWS credentials and rclone config
 - Create the backup bucket (if it doesn't exist)
 - Deploy backup/restore scripts
+- Set up daily cron job
 
 ## Manual Operations
 
 ### Run Backup
 
 ```bash
-ssh ubuntu@103.125.218.210
-sudo /opt/scripts/backup.sh all
+ssh ubuntu@13.54.159.183
+/opt/scripts/backup.sh all
 ```
 
 ### List Remote Backups
 
 ```bash
-rclone ls oci-archive:xdeca-backups/
+rclone ls s3:xdeca-backups/
+rclone ls s3:xdeca-backups/kanbn/
+rclone ls s3:xdeca-backups/outline/
 ```
 
 ### Restore
 
 ```bash
 # Latest
-sudo /opt/scripts/restore.sh openproject
+/opt/scripts/restore.sh kanbn
+/opt/scripts/restore.sh outline
 
 # Specific date
-sudo /opt/scripts/restore.sh openproject 2024-01-15
+/opt/scripts/restore.sh kanbn 2024-01-15
+/opt/scripts/restore.sh outline 2024-01-15
 ```
 
 See `docs/backups.md` for full restore procedures.
@@ -74,7 +67,6 @@ See `docs/backups.md` for full restore procedures.
 
 | File | Purpose |
 |------|---------|
-| `secrets.yaml` | OCI credentials (encrypted) |
+| `secrets.yaml` | AWS S3 credentials (encrypted) |
 | `scripts/backup.sh` | Backup script |
 | `scripts/restore.sh` | Restore script |
-| `scripts/setup-backups.sh` | Manual setup (superseded by IaC) |

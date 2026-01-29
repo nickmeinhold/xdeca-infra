@@ -1,10 +1,14 @@
 # Copy to Caddyfile and update domains
 # Caddy automatically handles HTTPS via Let's Encrypt
 
-openproject.example.com {
-    reverse_proxy localhost:8080
+wiki.xdeca.com {
+    reverse_proxy localhost:3002
 }
 
-calendar-sync.example.com {
-    reverse_proxy localhost:3001
+storage.xdeca.com {
+    reverse_proxy localhost:9000
+}
+
+tasks.xdeca.com {
+    reverse_proxy localhost:3003
 }

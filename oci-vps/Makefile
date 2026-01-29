@@ -23,10 +23,10 @@ ssh:
 
 # Deploy services
 deploy:
-	../scripts/deploy-to.sh $$(cd terraform && terraform output -raw instance_public_ip) all
+	./scripts/deploy.sh all
 
 deploy-%:
-	../scripts/deploy-to.sh $$(cd terraform && terraform output -raw instance_public_ip) $*
+	./scripts/deploy.sh $*
 
 # SOPS/age secrets management
 secrets-setup:
@@ -53,22 +53,6 @@ secrets-create-%:
 		echo "secrets/$*.yaml already exists"; \
 	fi
 
-# Discourse-specific commands (uses its own launcher)
-discourse-bootstrap:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/discourse && ./launcher bootstrap app"
-
-discourse-start:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/discourse && ./launcher start app"
-
-discourse-restart:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/discourse && ./launcher restart app"
-
-discourse-rebuild:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/discourse && ./launcher rebuild app"
-
-discourse-logs:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/discourse && ./launcher logs app"
-
 # Generate random secrets
 gen-secret-64:
 	@openssl rand -hex 64
@@ -81,15 +65,15 @@ gen-secret-16:
 
 # View logs
 logs-%:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/$* && podman-compose logs -f"
+	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/$* && docker-compose logs -f"
 
 # Restart service
 restart-%:
-	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/$* && podman-compose restart"
+	ssh ubuntu@$$(cd terraform && terraform output -raw instance_public_ip) "cd ~/apps/$* && docker-compose restart"
 
 # Help
 help:
-	@echo "Infrastructure as Code for xdeca VPS"
+	@echo "Infrastructure as Code for xdeca OCI VPS"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make init          - Initialize Terraform"
@@ -103,14 +87,17 @@ help:
 	@echo "  make ssh           - SSH to instance"
 	@echo ""
 	@echo "Secrets:"
-	@echo "  make secrets-create-openproject  - Create encrypted secrets"
-	@echo "  make secrets-edit-openproject    - Edit secrets"
-	@echo "  make gen-secret-64               - Generate 64-char hex secret"
+	@echo "  make secrets-create-kanbn    - Create encrypted secrets"
+	@echo "  make secrets-edit-kanbn      - Edit secrets"
+	@echo "  make gen-secret-64           - Generate 64-char hex secret"
 	@echo ""
 	@echo "Deploy:"
 	@echo "  make deploy        - Deploy all services"
 	@echo "  make deploy-caddy  - Deploy Caddy only"
+	@echo "  make deploy-kanbn  - Deploy Kan.bn only"
+	@echo "  make deploy-outline - Deploy Outline only"
 	@echo ""
 	@echo "Operations:"
-	@echo "  make logs-caddy       - View Caddy logs"
-	@echo "  make logs-openproject - View OpenProject logs"
+	@echo "  make logs-caddy    - View Caddy logs"
+	@echo "  make logs-kanbn    - View Kan.bn logs"
+	@echo "  make logs-outline  - View Outline logs"

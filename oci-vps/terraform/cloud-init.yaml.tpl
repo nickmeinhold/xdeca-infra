@@ -4,16 +4,19 @@ package_update: true
 package_upgrade: true
 
 packages:
-  - podman
-  - podman-compose
+  - docker.io
+  - docker-compose
   - git
   - curl
   - htop
   - netcat-openbsd
+  - rclone
 
 runcmd:
-  # Enable lingering for ubuntu user (keeps containers running)
-  - loginctl enable-linger ubuntu
+  # Enable Docker
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker ubuntu
 
   # Set up apps directory
   - mkdir -p /home/ubuntu/apps
@@ -22,9 +25,6 @@ runcmd:
   # Set up scripts directory
   - mkdir -p /opt/scripts
   - chown ubuntu:ubuntu /opt/scripts
-
-  # Install rclone for backups
-  - curl https://rclone.org/install.sh | bash
 
   # Set up keep-alive to prevent idle reclamation
   - |
@@ -57,26 +57,24 @@ write_files:
       # xdeca VPS
 
       ## Services
-      - OpenProject: https://openproject.${domain}
-      - Discourse: https://discourse.${domain}
+      - Kan.bn: https://tasks.xdeca.com
+      - Outline: https://wiki.xdeca.com
+      - MinIO: https://storage.xdeca.com
 
       ## Directory Structure
       ~/apps/
-        caddy/       - Reverse proxy
-        openproject/ - Project management
-        discourse/   - Forum
+        caddy/   - Reverse proxy
+        kanbn/   - Task management
+        outline/ - Team wiki
 
       ## Commands
       cd ~/apps/<service>
-      podman-compose up -d      # Start
-      podman-compose logs -f    # Logs
-      podman-compose restart    # Restart
+      docker-compose up -d      # Start
+      docker-compose logs -f    # Logs
+      docker-compose restart    # Restart
 
       ## Backups
-      Daily at 4 AM to Oracle Object Storage.
-
-      Setup (one-time):
-        /opt/scripts/setup-backups.sh
+      Daily at 4 AM to AWS S3.
 
       Manual backup:
         /opt/scripts/backup.sh all

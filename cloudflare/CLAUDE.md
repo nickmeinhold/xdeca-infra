@@ -1,35 +1,12 @@
-# Cloudflare Workers
+# Cloudflare Workers (Unused)
 
-Terraform-managed Cloudflare Workers.
+This directory is no longer in use. Previously contained Cloudflare Workers for calendar sync, which has been removed.
 
-## Workers
+## Cleanup
 
-| Worker | Purpose |
-|--------|---------|
-| `openproject-calendar-webhook` | OpenProject webhook → GitHub Actions |
-
-**URL**: `https://openproject-calendar-webhook.nick-meinhold.workers.dev`
-
-## Commands
+To remove any remaining workers from Cloudflare:
 
 ```bash
-make init          # Initialize Terraform
-make plan          # Preview changes
-make apply         # Deploy
-make webhook-url   # Show webhook URL with token
+cd cloudflare
+make destroy
 ```
-
-## Architecture
-
-```
-OpenProject → Cloudflare Worker → GitHub Actions → Google Calendar
-   (webhook)   (this worker)      (repository_dispatch)    (sync)
-```
-
-## Secrets
-
-SOPS-encrypted in `secrets.yaml`:
-
-- `cloudflare_api_token` - Cloudflare API token
-- `github_token` - GitHub PAT with `repo` scope
-- `webhook_secret` - Shared secret for webhook auth

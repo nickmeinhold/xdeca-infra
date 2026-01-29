@@ -1,7 +1,7 @@
 #!/bin/bash
-# Deploy services to xdeca VPS
+# Deploy services to OCI VPS (when provisioned)
 # Usage: ./scripts/deploy.sh [service]
-# Services: all, caddy, openproject, discourse, scripts
+# Services: all, caddy, outline, kanbn, scripts
 
 set -e
 
@@ -14,97 +14,139 @@ REMOTE="ubuntu@$(terraform -chdir="$OCI_VPS_DIR/terraform" output -raw instance_
 
 echo "Deploying to $REMOTE..."
 
-# Decrypt secrets and generate .env files
-decrypt_secrets() {
-    echo "Decrypting secrets..."
-
-    if [ -f "$REPO_ROOT/openproject/secrets.yaml" ]; then
-        sops -d "$REPO_ROOT/openproject/secrets.yaml" | yq -r '"OPENPROJECT_HOSTNAME=\(.hostname)\nOPENPROJECT_SECRET_KEY_BASE=\(.secret_key_base)"' > "$REPO_ROOT/openproject/.env"
-    fi
-}
-
 deploy_scripts() {
     echo "Deploying backup scripts..."
 
     # Copy scripts to /opt/scripts
-    rsync -avz "$REPO_ROOT/scripts/" $REMOTE:/opt/scripts/
-    ssh $REMOTE "chmod +x /opt/scripts/*.sh"
+    ssh $REMOTE "sudo mkdir -p /opt/scripts"
+    rsync -avz "$REPO_ROOT/scripts/" $REMOTE:/tmp/scripts/
+    ssh $REMOTE "sudo mv /tmp/scripts/* /opt/scripts/ && sudo chmod +x /opt/scripts/*.sh"
 
     echo "Backup scripts deployed to /opt/scripts/"
-    echo "Run '/opt/scripts/setup-backups.sh' to configure rclone credentials"
 }
 
 deploy_service() {
     local svc=$1
     echo "Deploying $svc..."
 
+    ssh $REMOTE "mkdir -p ~/apps/$svc"
     rsync -avz --delete "$REPO_ROOT/$svc/" $REMOTE:~/apps/$svc/
-    ssh $REMOTE "cd ~/apps/$svc && podman-compose pull && podman-compose up -d"
+    ssh $REMOTE "cd ~/apps/$svc && docker-compose pull && docker-compose up -d"
 }
 
-deploy_discourse() {
-    echo "Deploying Discourse..."
+deploy_outline() {
+    echo "Deploying Outline Wiki..."
 
-    # Discourse uses its own launcher, not podman-compose
-    # First time: clone discourse_docker repo on server
-    ssh $REMOTE "test -d ~/apps/discourse || git clone https://github.com/discourse/discourse_docker.git ~/apps/discourse"
+    local OUTLINE_SECRETS="$REPO_ROOT/outline/secrets.yaml"
 
-    # Copy app.yml config
-    if [ -f "$REPO_ROOT/discourse/secrets.yaml" ]; then
-        # Generate app.yml from template and secrets
-        echo "Generating Discourse config from secrets..."
-        HOSTNAME=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.hostname')
-        DEV_EMAIL=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.developer_email')
-        SMTP_ADDR=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.smtp_address')
-        SMTP_PORT=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.smtp_port')
-        SMTP_USER=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.smtp_user')
-        SMTP_PASS=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.smtp_password')
-        SMTP_DOMAIN=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.smtp_domain')
-        NOTIF_EMAIL=$(sops -d "$REPO_ROOT/discourse/secrets.yaml" | yq -r '.notification_email')
-
-        cat "$REPO_ROOT/discourse/app.yml.example" | \
-            sed "s/discourse.example.com/$HOSTNAME/g" | \
-            sed "s/admin@example.com/$DEV_EMAIL/g" | \
-            sed "s/smtp.mailgun.org/$SMTP_ADDR/g" | \
-            sed "s/587/$SMTP_PORT/g" | \
-            sed "s/postmaster@mg.example.com/$SMTP_USER/g" | \
-            sed "s/your-smtp-password/$SMTP_PASS/g" | \
-            sed "s/example.com/$SMTP_DOMAIN/g" | \
-            sed "s/noreply@example.com/$NOTIF_EMAIL/g" \
-            > /tmp/discourse-app.yml
-
-        ssh $REMOTE "mkdir -p ~/apps/discourse/containers"
-        scp /tmp/discourse-app.yml $REMOTE:~/apps/discourse/containers/app.yml
-        rm /tmp/discourse-app.yml
+    if [ ! -f "$OUTLINE_SECRETS" ]; then
+        echo "ERROR: outline/secrets.yaml not found"
+        return 1
     fi
 
-    echo "Discourse config deployed. To bootstrap (first time only):"
-    echo "  ssh $REMOTE 'cd ~/apps/discourse && ./launcher bootstrap app'"
-    echo "To start/restart:"
-    echo "  ssh $REMOTE 'cd ~/apps/discourse && ./launcher start app'"
+    # Generate .env from encrypted secrets
+    echo "Generating .env from encrypted secrets..."
+    sops -d "$OUTLINE_SECRETS" | yq -r '"# Outline Configuration (auto-generated from secrets.yaml)
+OUTLINE_URL=\(.outline_url)
+
+# Generated secrets
+SECRET_KEY=\(.secret_key)
+UTILS_SECRET=\(.utils_secret)
+
+# Postgres
+POSTGRES_PASSWORD=\(.postgres_password)
+
+# MinIO (S3-compatible storage)
+MINIO_ROOT_USER=\(.minio_root_user)
+MINIO_ROOT_PASSWORD=\(.minio_root_password)
+MINIO_URL=\(.minio_url)
+
+# SMTP
+SMTP_HOST=\(.smtp_host)
+SMTP_PORT=\(.smtp_port)
+SMTP_USERNAME=\(.smtp_username)
+SMTP_PASSWORD=\(.smtp_password)
+SMTP_FROM_EMAIL=\(.smtp_from_email)
+SMTP_SECURE=\(.smtp_secure)"' > "$REPO_ROOT/outline/.env"
+
+    # Deploy files
+    ssh $REMOTE "mkdir -p ~/apps/outline"
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/outline/" $REMOTE:~/apps/outline/
+
+    # Clean up local .env
+    rm -f "$REPO_ROOT/outline/.env"
+
+    # Start Outline
+    ssh $REMOTE "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
+
+    echo "Outline deployed!"
 }
 
-decrypt_secrets
+deploy_kanbn() {
+    echo "Deploying Kan.bn..."
+
+    local KANBN_SECRETS="$REPO_ROOT/kanbn/secrets.yaml"
+
+    if [ ! -f "$KANBN_SECRETS" ]; then
+        echo "ERROR: kanbn/secrets.yaml not found"
+        return 1
+    fi
+
+    # Generate .env from encrypted secrets
+    echo "Generating .env from encrypted secrets..."
+    sops -d "$KANBN_SECRETS" | yq -r '"# Kan.bn Configuration (auto-generated from secrets.yaml)
+KANBN_URL=\(.kanbn_url)
+AUTH_SECRET=\(.auth_secret)
+POSTGRES_PASSWORD=\(.postgres_password)
+SMTP_HOST=\(.smtp_host)
+SMTP_PORT=\(.smtp_port)
+SMTP_USERNAME=\(.smtp_username)
+SMTP_PASSWORD=\(.smtp_password)
+SMTP_FROM_EMAIL=\(.smtp_from_email)
+TRELLO_API_KEY=\(.trello_api_key)
+TRELLO_API_SECRET=\(.trello_api_secret)
+S3_ENDPOINT=\(.s3_endpoint)
+S3_ACCESS_KEY_ID=\(.s3_access_key_id)
+S3_SECRET_ACCESS_KEY=\(.s3_secret_access_key)
+NEXT_PUBLIC_STORAGE_URL=\(.next_public_storage_url)
+WEBHOOK_URL=\(.webhook_url)
+WEBHOOK_SECRET=\(.webhook_secret)"' > "$REPO_ROOT/kanbn/.env"
+
+    # Deploy files
+    ssh $REMOTE "mkdir -p ~/apps/kanbn"
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/kanbn/" $REMOTE:~/apps/kanbn/
+
+    # Clean up local .env
+    rm -f "$REPO_ROOT/kanbn/.env"
+
+    # Build and start Kan.bn
+    ssh $REMOTE "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker-compose build --pull && docker-compose up -d"
+
+    echo "Kan.bn deployed!"
+}
 
 case $SERVICE in
     all)
         deploy_scripts
         deploy_service caddy
-        deploy_service openproject
-        deploy_discourse
+        deploy_outline
+        deploy_kanbn
         ;;
     scripts)
         deploy_scripts
         ;;
-    caddy|openproject)
-        deploy_service $SERVICE
+    caddy)
+        deploy_service caddy
         ;;
-    discourse)
-        deploy_discourse
+    outline|wiki)
+        deploy_outline
+        ;;
+    kanbn|tasks)
+        deploy_kanbn
         ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 [all|caddy|openproject|discourse|scripts]"
+        echo "Usage: $0 [all|caddy|outline|kanbn|scripts]"
         exit 1
         ;;
 esac

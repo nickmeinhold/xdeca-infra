@@ -3,8 +3,9 @@
 
 # Files that should be SOPS-encrypted if they exist
 SECRET_PATTERNS=(
-  "openproject/*.yaml"
-  "discourse/*.yaml"
+  "kanbn/*.yaml"
+  "outline/*.yaml"
+  "backups/*.yaml"
 )
 
 # Exclude example files
