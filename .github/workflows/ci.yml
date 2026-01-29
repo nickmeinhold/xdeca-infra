@@ -56,5 +56,4 @@ jobs:
         run: |
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 150}}}" \
             .github/workflows/*.yml \
-            */docker-compose.yml \
-            */docker-compose.yaml
+            */docker-compose.yml
