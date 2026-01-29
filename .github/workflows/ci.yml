@@ -40,7 +40,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: './scripts'
-          additional_files: 'oci-vps/scripts/deploy.sh oci-vps/scripts/create-xdeca-instance.sh oci-vps/retry-provision.sh'
+          additional_files: 'oci-vps/scripts/deploy.sh oci-vps/scripts/create-xdeca-instance.sh oci-vps/retry-provision.sh .githooks/pre-commit'
           severity: warning
 
   yaml-lint:
@@ -57,5 +57,4 @@ jobs:
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 150}}}" \
             .github/workflows/*.yml \
             */docker-compose.yml \
-            */docker-compose.yaml \
-            2>/dev/null || true
+            */docker-compose.yaml
