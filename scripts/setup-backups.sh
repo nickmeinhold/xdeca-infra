@@ -35,11 +35,11 @@ echo "2. Resources → Customer Secret Keys → Generate Secret Key"
 echo "3. Name it 'rclone-backups'"
 echo "4. COPY THE SECRET KEY NOW (it won't be shown again)"
 echo ""
-read -p "Press Enter when you have the Access Key and Secret Key..."
+read -rp "Press Enter when you have the Access Key and Secret Key..."
 
 echo ""
-read -p "Enter Access Key: " ACCESS_KEY
-read -sp "Enter Secret Key: " SECRET_KEY
+read -rp "Enter Access Key: " ACCESS_KEY
+read -rsp "Enter Secret Key: " SECRET_KEY
 echo ""
 
 # Get namespace

@@ -18,9 +18,9 @@ deploy_scripts() {
     echo "Deploying backup scripts..."
 
     # Copy scripts to /opt/scripts
-    ssh $REMOTE "sudo mkdir -p /opt/scripts"
-    rsync -avz "$REPO_ROOT/scripts/" $REMOTE:/tmp/scripts/
-    ssh $REMOTE "sudo mv /tmp/scripts/* /opt/scripts/ && sudo chmod +x /opt/scripts/*.sh"
+    ssh "$REMOTE" "sudo mkdir -p /opt/scripts"
+    rsync -avz "$REPO_ROOT/scripts/" "$REMOTE":/tmp/scripts/
+    ssh "$REMOTE" "sudo mv /tmp/scripts/* /opt/scripts/ && sudo chmod +x /opt/scripts/*.sh"
 
     echo "Backup scripts deployed to /opt/scripts/"
 }
@@ -29,9 +29,9 @@ deploy_service() {
     local svc=$1
     echo "Deploying $svc..."
 
-    ssh $REMOTE "mkdir -p ~/apps/$svc"
-    rsync -avz --delete "$REPO_ROOT/$svc/" $REMOTE:~/apps/$svc/
-    ssh $REMOTE "cd ~/apps/$svc && docker-compose pull && docker-compose up -d"
+    ssh "$REMOTE" "mkdir -p ~/apps/$svc"
+    rsync -avz --delete "$REPO_ROOT/$svc/" "$REMOTE":~/apps/"$svc"/
+    ssh "$REMOTE" "cd ~/apps/$svc && docker-compose pull && docker-compose up -d"
 }
 
 deploy_outline() {
@@ -70,14 +70,14 @@ SMTP_FROM_EMAIL=\(.smtp_from_email)
 SMTP_SECURE=\(.smtp_secure)"' > "$REPO_ROOT/outline/.env"
 
     # Deploy files
-    ssh $REMOTE "mkdir -p ~/apps/outline"
-    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/outline/" $REMOTE:~/apps/outline/
+    ssh "$REMOTE" "mkdir -p ~/apps/outline"
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/outline/" "$REMOTE":~/apps/outline/
 
     # Clean up local .env
     rm -f "$REPO_ROOT/outline/.env"
 
     # Start Outline
-    ssh $REMOTE "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
+    ssh "$REMOTE" "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
 
     echo "Outline deployed!"
 }
@@ -113,14 +113,14 @@ WEBHOOK_URL=\(.webhook_url)
 WEBHOOK_SECRET=\(.webhook_secret)"' > "$REPO_ROOT/kanbn/.env"
 
     # Deploy files
-    ssh $REMOTE "mkdir -p ~/apps/kanbn"
-    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/kanbn/" $REMOTE:~/apps/kanbn/
+    ssh "$REMOTE" "mkdir -p ~/apps/kanbn"
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/kanbn/" "$REMOTE":~/apps/kanbn/
 
     # Clean up local .env
     rm -f "$REPO_ROOT/kanbn/.env"
 
     # Build and start Kan.bn
-    ssh $REMOTE "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker-compose build --pull && docker-compose up -d"
+    ssh "$REMOTE" "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker-compose build --pull && docker-compose up -d"
 
     echo "Kan.bn deployed!"
 }
