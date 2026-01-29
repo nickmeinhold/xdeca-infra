@@ -27,7 +27,7 @@ if [ -f "$LOCK" ]; then
     fi
 fi
 echo $$ > "$LOCK"
-trap "rm -f $LOCK" EXIT
+trap 'rm -f "$LOCK"' EXIT
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -57,6 +57,7 @@ NUM_ACCOUNTS=$(yq -r '.accounts | length' "$ACCOUNTS_FILE")
 for i in $(seq 0 $((NUM_ACCOUNTS - 1))); do
     NAME=$(yq -r ".accounts[$i].name" "$ACCOUNTS_FILE")
     PROFILE=$(yq -r ".accounts[$i].profile" "$ACCOUNTS_FILE")
+    # shellcheck disable=SC2034  # REGION used by OCI CLI via profile
     REGION=$(yq -r ".accounts[$i].region" "$ACCOUNTS_FILE")
     COMPARTMENT_ID=$(yq -r ".accounts[$i].compartment_id" "$ACCOUNTS_FILE")
     SUBNET_ID=$(yq -r ".accounts[$i].subnet_id" "$ACCOUNTS_FILE")

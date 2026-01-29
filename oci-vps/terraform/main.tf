@@ -10,7 +10,7 @@ data "cloudinit_config" "server" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/cloud-init.yaml.tpl", {
+    content = templatefile("${path.module}/cloud-init.yaml.tpl", {
       domain = var.domain
     })
   }

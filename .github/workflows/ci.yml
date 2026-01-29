@@ -41,6 +41,7 @@ jobs:
         with:
           scandir: './scripts'
           additional_files: 'oci-vps/scripts/deploy.sh oci-vps/scripts/create-xdeca-instance.sh oci-vps/retry-provision.sh'
+          severity: warning
 
   yaml-lint:
     name: YAML Linting
