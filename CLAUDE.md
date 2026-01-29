@@ -16,6 +16,22 @@ Monorepo for xdeca infrastructure and self-hosted services.
 └── .sops.yaml          # SOPS encryption config
 ```
 
+## CI & Branch Protection
+
+**Branch protection on `main`:**
+- Requires PR with 1 approving review
+- Requires all CI checks to pass
+- Dismisses stale reviews on new commits
+
+**CI checks (`.github/workflows/ci.yml`):**
+- Terraform fmt + validate (dns, lightsail, oci-vps/terraform)
+- ShellCheck for all bash scripts
+- yamllint for docker-compose and workflow files
+
+**Bot accounts (collaborators):**
+- `claude-reviewer-max` - PR reviews
+- `claude-pm-enspyr` - Project management
+
 ## Services
 
 | Service | Port | URL | Description |
