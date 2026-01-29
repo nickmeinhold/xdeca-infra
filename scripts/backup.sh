@@ -1,7 +1,7 @@
 #!/bin/bash
 # Unified backup script for all services
 # Backs up to AWS S3 via rclone
-# Usage: ./backup.sh [all|openproject]
+# Usage: ./backup.sh [all|kanbn|outline]
 
 set -e
 
@@ -28,19 +28,34 @@ error() {
 # Create backup directory
 mkdir -p "$BACKUP_DIR"
 
-backup_openproject() {
-  log "Backing up OpenProject..."
+backup_kanbn() {
+  log "Backing up Kan.bn..."
 
-  local backup_file="$BACKUP_DIR/openproject-$DATE.sql.gz"
+  local backup_file="$BACKUP_DIR/kanbn-$DATE.sql.gz"
 
-  # Dump PostgreSQL (OpenProject uses internal postgres, must run as postgres user)
-  docker exec -u postgres openproject_openproject_1 \
-    pg_dump openproject | gzip > "$backup_file"
+  # Dump PostgreSQL
+  docker exec kanbn_postgres \
+    pg_dump -U kanbn kanbn | gzip > "$backup_file"
 
   # Upload to object storage
-  rclone copy "$backup_file" "$RCLONE_REMOTE:$BUCKET/openproject/"
+  rclone copy "$backup_file" "$RCLONE_REMOTE:$BUCKET/kanbn/"
 
-  log "OpenProject backup complete: openproject-$DATE.sql.gz"
+  log "Kan.bn backup complete: kanbn-$DATE.sql.gz"
+}
+
+backup_outline() {
+  log "Backing up Outline..."
+
+  local backup_file="$BACKUP_DIR/outline-$DATE.sql.gz"
+
+  # Dump PostgreSQL
+  docker exec outline_postgres \
+    pg_dump -U outline outline | gzip > "$backup_file"
+
+  # Upload to object storage
+  rclone copy "$backup_file" "$RCLONE_REMOTE:$BUCKET/outline/"
+
+  log "Outline backup complete: outline-$DATE.sql.gz"
 }
 
 cleanup_old_backups() {
@@ -50,7 +65,9 @@ cleanup_old_backups() {
   find "$BACKUP_DIR" -type f -mtime +$RETENTION_DAYS -delete 2>/dev/null || true
 
   # Clean remote backups (rclone delete with min-age)
-  rclone delete "$RCLONE_REMOTE:$BUCKET/openproject/" \
+  rclone delete "$RCLONE_REMOTE:$BUCKET/kanbn/" \
+    --min-age "${RETENTION_DAYS}d" 2>/dev/null || true
+  rclone delete "$RCLONE_REMOTE:$BUCKET/outline/" \
     --min-age "${RETENTION_DAYS}d" 2>/dev/null || true
 
   log "Cleanup complete"
@@ -59,17 +76,21 @@ cleanup_old_backups() {
 # Run backups
 case $SERVICE in
   all)
-    backup_openproject
+    backup_kanbn
+    backup_outline
     cleanup_old_backups
     ;;
-  openproject)
-    backup_openproject
+  kanbn)
+    backup_kanbn
+    ;;
+  outline)
+    backup_outline
     ;;
   cleanup)
     cleanup_old_backups
     ;;
   *)
-    echo "Usage: $0 [all|openproject|cleanup]"
+    echo "Usage: $0 [all|kanbn|outline|cleanup]"
     exit 1
     ;;
 esac

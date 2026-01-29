@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploy services to any VPS
 # Usage: ./scripts/deploy-to.sh <ip> [service]
-# Services: all, caddy, openproject, calendar-sync, outline, kanbn, backups, scripts
+# Services: all, caddy, outline, kanbn, backups, scripts
 
 set -e
 
@@ -11,7 +11,7 @@ export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
 if [ -z "$1" ]; then
   echo "Usage: $0 <ip> [service]"
   echo "  ip: VPS IP address or hostname"
-  echo "  service: all|caddy|openproject|calendar-sync|backups|scripts (default: all)"
+  echo "  service: all|caddy|outline|kanbn|backups|scripts (default: all)"
   exit 1
 fi
 
@@ -21,22 +21,6 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE="ubuntu@$IP"
 
 echo "Deploying to $REMOTE..."
-
-# Decrypt secrets and generate .env files
-decrypt_secrets() {
-    echo "Decrypting secrets..."
-
-    if [ -f "$REPO_ROOT/openproject/secrets.yaml" ]; then
-        sops -d "$REPO_ROOT/openproject/secrets.yaml" | yq -r '"OPENPROJECT_HOSTNAME=\(.hostname)
-OPENPROJECT_SECRET_KEY_BASE=\(.secret_key_base)
-OPENPROJECT_SMTP_ADDRESS=\(.smtp_address)
-OPENPROJECT_SMTP_PORT=\(.smtp_port)
-OPENPROJECT_SMTP_USER=\(.smtp_user)
-OPENPROJECT_SMTP_PASSWORD=\(.smtp_password)
-OPENPROJECT_SMTP_DOMAIN=\(.smtp_domain)
-OPENPROJECT_MAIL_FROM=\(.mail_from)"' > "$REPO_ROOT/openproject/.env"
-    fi
-}
 
 deploy_scripts() {
     echo "Deploying backup scripts..."
@@ -52,68 +36,6 @@ deploy_service() {
     ssh $REMOTE "mkdir -p ~/apps/$svc"
     rsync -avz --delete "$REPO_ROOT/$svc/" $REMOTE:~/apps/$svc/
     ssh $REMOTE "cd ~/apps/$svc && docker-compose pull && docker-compose up -d"
-}
-
-deploy_calendar_sync() {
-    echo "Deploying calendar-sync..."
-    local SYNC_DIR="$REPO_ROOT/openproject/openproject-calendar-sync"
-    local REMOTE_DIR="~/apps/calendar-sync"
-
-    # Sync files (exclude node_modules, will npm install on remote)
-    ssh $REMOTE "mkdir -p $REMOTE_DIR"
-    rsync -avz --exclude 'node_modules' "$SYNC_DIR/" $REMOTE:$REMOTE_DIR/
-
-    # Copy secrets if they exist locally
-    if [ -f "$SYNC_DIR/secrets.yaml" ]; then
-        echo "Copying encrypted secrets.yaml..."
-        scp "$SYNC_DIR/secrets.yaml" $REMOTE:$REMOTE_DIR/secrets.yaml
-    else
-        echo "WARNING: No secrets.yaml found. You'll need to create it on the VPS:"
-        echo "  ssh $REMOTE"
-        echo "  cd $REMOTE_DIR"
-        echo "  cp secrets.yaml.example secrets.yaml"
-        echo "  # Edit with your values, then: sops -e -i secrets.yaml"
-    fi
-
-    # Install npm dependencies
-    echo "Installing npm dependencies..."
-    ssh $REMOTE "cd $REMOTE_DIR && npm install"
-
-    # Generate and install systemd service
-    echo "Installing systemd service..."
-    cat > /tmp/calendar-sync.service << 'EOF'
-[Unit]
-Description=OpenProject Calendar Sync Webhook Server
-After=network.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/apps/calendar-sync
-ExecStart=/usr/bin/make run
-Restart=always
-RestartSec=10
-Environment=HOME=/home/ubuntu
-Environment=SOPS_AGE_KEY_FILE=/home/ubuntu/.config/sops/age/keys.txt
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    scp /tmp/calendar-sync.service $REMOTE:/tmp/calendar-sync.service
-    ssh $REMOTE "sudo mv /tmp/calendar-sync.service /etc/systemd/system/calendar-sync.service"
-    ssh $REMOTE "sudo systemctl daemon-reload"
-    rm /tmp/calendar-sync.service
-
-    # Check if secrets exist before starting
-    if ssh $REMOTE "test -f $REMOTE_DIR/secrets.yaml"; then
-        echo "Enabling and starting calendar-sync service..."
-        ssh $REMOTE "sudo systemctl enable calendar-sync"
-        ssh $REMOTE "sudo systemctl restart calendar-sync"
-        echo "Calendar-sync service started. Check status: ssh $REMOTE 'sudo systemctl status calendar-sync'"
-    else
-        echo "Secrets not configured. Service installed but not started."
-        echo "After configuring secrets, run: sudo systemctl enable --now calendar-sync"
-    fi
 }
 
 deploy_backups() {
@@ -245,7 +167,7 @@ SMTP_SECURE=\(.smtp_secure)"' > "$REPO_ROOT/outline/.env"
     ssh $REMOTE "cd ~/apps/outline && docker-compose pull && docker-compose up -d"
 
     echo "Outline deployed!"
-    echo "  URL: https://wiki.enspyr.co"
+    echo "  URL: https://wiki.xdeca.com"
     echo "  Note: First user to sign in becomes admin"
 }
 
@@ -292,73 +214,17 @@ WEBHOOK_SECRET=\(.webhook_secret)"' > "$REPO_ROOT/kanbn/.env"
     ssh $REMOTE "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker-compose build --pull && docker-compose up -d"
 
     echo "Kan.bn deployed!"
-    echo "  URL: https://kanbn.enspyr.co"
+    echo "  URL: https://tasks.xdeca.com"
     echo "  Note: First user to sign up becomes admin"
 }
-
-auto_restore() {
-    echo "Checking if restore from backup is needed..."
-
-    # Check if rclone is configured
-    if ! ssh $REMOTE "test -f ~/.config/rclone/rclone.conf"; then
-        echo "rclone not configured, skipping auto-restore"
-        return 0
-    fi
-
-    # Check if backups exist
-    local has_backups=$(ssh $REMOTE "rclone ls s3:xdeca-backups/openproject/ 2>/dev/null | head -1")
-    if [ -z "$has_backups" ]; then
-        echo "No backups found, skipping auto-restore"
-        return 0
-    fi
-
-    # Check OpenProject - if fresh install, users table has only 1 row (admin)
-    echo "Checking OpenProject database..."
-    local op_user_count=$(ssh $REMOTE "docker exec -u postgres openproject_openproject_1 psql -t -c 'SELECT COUNT(*) FROM users;' openproject 2>/dev/null | tr -d ' '" || echo "0")
-
-    if [ "$op_user_count" = "1" ] || [ "$op_user_count" = "0" ]; then
-        echo "OpenProject appears fresh (user count: $op_user_count), restoring from backup..."
-        restore_openproject
-    else
-        echo "OpenProject has data (user count: $op_user_count), skipping restore"
-    fi
-}
-
-restore_openproject() {
-    echo "Restoring OpenProject from latest backup..."
-
-    # Find latest backup
-    local latest=$(ssh $REMOTE "rclone ls s3:xdeca-backups/openproject/ 2>/dev/null | sort -k2 | tail -1 | awk '{print \$2}'")
-    if [ -z "$latest" ]; then
-        echo "No OpenProject backup found"
-        return 1
-    fi
-
-    echo "Downloading: $latest"
-    ssh $REMOTE "rclone copy s3:xdeca-backups/openproject/$latest /tmp/"
-
-    echo "Restoring database..."
-    ssh $REMOTE "gunzip -c /tmp/$latest | docker exec -i -u postgres openproject_openproject_1 psql openproject"
-    ssh $REMOTE "rm /tmp/$latest"
-
-    echo "Restarting OpenProject..."
-    ssh $REMOTE "cd ~/apps/openproject && docker-compose restart"
-
-    echo "OpenProject restored!"
-}
-
-decrypt_secrets
 
 case $SERVICE in
     all)
         deploy_scripts
         deploy_backups
         deploy_service caddy
-        deploy_service openproject
-        deploy_calendar_sync
         deploy_outline
         deploy_kanbn
-        auto_restore
         ;;
     scripts)
         deploy_scripts
@@ -366,25 +232,18 @@ case $SERVICE in
     backups)
         deploy_backups
         ;;
-    caddy|openproject)
-        deploy_service $SERVICE
-        ;;
-    calendar-sync)
-        deploy_calendar_sync
+    caddy)
+        deploy_service caddy
         ;;
     outline|wiki)
         deploy_outline
         ;;
-    kanbn)
+    kanbn|tasks)
         deploy_kanbn
-        ;;
-    restore)
-        restore_openproject
-        echo "Restore complete!"
         ;;
     *)
         echo "Unknown service: $SERVICE"
-        echo "Usage: $0 <ip> [all|caddy|openproject|calendar-sync|outline|kanbn|backups|scripts|restore]"
+        echo "Usage: $0 <ip> [all|caddy|outline|kanbn|backups|scripts]"
         exit 1
         ;;
 esac

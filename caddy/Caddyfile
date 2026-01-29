@@ -1,16 +1,8 @@
-openproject.enspyr.co {
-    reverse_proxy localhost:8080
-}
-
-calendar-sync.enspyr.co {
-    reverse_proxy localhost:3001
-}
-
 wiki.xdeca.com {
     reverse_proxy localhost:3002
 }
 
-storage.enspyr.co {
+storage.xdeca.com {
     reverse_proxy localhost:9000
 }
 
