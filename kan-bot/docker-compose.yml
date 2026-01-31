@@ -1,0 +1,19 @@
+services:
+  kan-bot:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: kan-bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - KAN_BASE_URL=${KAN_BASE_URL:-https://tasks.xdeca.com}
+      - KAN_SERVICE_API_KEY=${KAN_SERVICE_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SPRINT_START_DATE=${SPRINT_START_DATE:-2025-01-05}
+      - REMINDER_INTERVAL_HOURS=${REMINDER_INTERVAL_HOURS:-1}
+    volumes:
+      - kan_bot_data:/app/data
+
+volumes:
+  kan_bot_data:
