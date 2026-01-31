@@ -9,6 +9,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 ├── backups/            # Backup config (AWS S3)
 ├── caddy/              # Reverse proxy (Caddy)
 ├── dns/                # DNS (Terraform) - xdeca.com only
+├── kan-bot/            # Telegram bot for Kan.bn
 ├── kanbn/              # Kanban boards (Trello alternative)
 ├── outline/            # Team wiki (Notion alternative)
 ├── lightsail/          # AWS Lightsail VPS (primary)
@@ -38,6 +39,7 @@ Monorepo for xdeca infrastructure and self-hosted services.
 |---------|------|-----|-------------|
 | Caddy | 80/443 | - | Reverse proxy, auto-TLS |
 | Kan.bn | 3003 | tasks.xdeca.com | Kanban boards (Trello-like) |
+| Kan Bot | - | Telegram | AI task assistant for Kan.bn |
 | Outline | 3002 | wiki.xdeca.com | Team wiki (Notion-like) |
 | MinIO | 9000 | storage.xdeca.com | S3-compatible file storage |
 
@@ -215,3 +217,38 @@ Kan.bn has built-in Trello import via OAuth. To import:
 ```
 
 First user to sign up becomes admin.
+
+---
+
+# kan-bot
+
+Telegram bot for Kan.bn task management. Uses Claude AI for natural language interaction.
+
+**Source**: `../telegram-bots/kan-bot` (separate repo)
+
+## Features
+
+- Task reminders via Telegram
+- Sprint tracking
+- AI-powered task assistance (Claude)
+
+## Config
+
+| Variable | Description |
+|----------|-------------|
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token |
+| `KAN_BASE_URL` | Kan.bn URL (default: tasks.xdeca.com) |
+| `KAN_SERVICE_API_KEY` | API key for Kan.bn |
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `SPRINT_START_DATE` | Sprint start date |
+| `REMINDER_INTERVAL_HOURS` | Reminder frequency |
+
+## Setup
+
+```bash
+# Deploy (source code from ../telegram-bots/kan-bot)
+./scripts/deploy-to.sh 13.54.159.183 kan-bot
+
+# Check logs
+ssh 13.54.159.183 'docker logs -f kan-bot'
+```
