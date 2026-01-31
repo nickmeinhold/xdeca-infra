@@ -30,7 +30,7 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
       - SMTP_SECURE=${SMTP_SECURE}
-      - FORCE_HTTPS=true
+      - FORCE_HTTPS=${FORCE_HTTPS:-true}
       - ENABLE_UPDATES=false
       - WEB_CONCURRENCY=1
       - LOG_LEVEL=info

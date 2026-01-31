@@ -154,6 +154,25 @@ Self-hosted team wiki (Notion alternative). Real-time collaboration with edit hi
 
 First user to sign up becomes admin. Invite team members from Settings → Members.
 
+## Local Development
+
+```bash
+cd outline
+cp .env.local .env   # Copy local dev template
+docker compose up -d # Start all services
+```
+
+Access at http://localhost:3002. First signup becomes admin.
+
+**Services:**
+- Outline: http://localhost:3002
+- MinIO Console: http://localhost:9001 (outline / see .env for password)
+
+**Notes:**
+- `.env.local` has pre-generated secrets safe for local dev
+- `.env` is gitignored
+- Email won't work locally (no SMTP) but signup still works
+
 ---
 
 # kanbn
