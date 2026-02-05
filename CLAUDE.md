@@ -235,7 +235,7 @@ First user to sign up becomes admin.
 
 Telegram bot for Kan.bn task management. Uses Claude AI for natural language interaction.
 
-**Source**: `../telegram-bots/kan-bot` (separate repo)
+**Source**: [10xdeca/kan-bot](https://github.com/10xdeca/kan-bot)
 
 ## Features
 
@@ -257,7 +257,7 @@ Telegram bot for Kan.bn task management. Uses Claude AI for natural language int
 ## Setup
 
 ```bash
-# Deploy (source code from ../telegram-bots/kan-bot)
+# Deploy (source from https://github.com/10xdeca/kan-bot)
 ./scripts/deploy-to.sh 13.54.159.183 kan-bot
 
 # Check logs
