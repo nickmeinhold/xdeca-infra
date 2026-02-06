@@ -224,7 +224,7 @@ deploy_kan_bot() {
     echo "Deploying Kan Bot (Telegram)..."
 
     local KAN_BOT_SECRETS="$REPO_ROOT/kan-bot/secrets.yaml"
-    local KAN_BOT_SRC="$REPO_ROOT/../telegram-bots/kan-bot"
+    local KAN_BOT_SRC="$REPO_ROOT/../telegram-bots/xdeca-pm-bot"
 
     # Check for secrets file
     if [ ! -f "$KAN_BOT_SECRETS" ]; then
