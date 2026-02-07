@@ -125,13 +125,46 @@ EOF
         ssh "$REMOTE" "echo '0 4 * * * ubuntu /opt/scripts/backup.sh all >> /var/log/backup.log 2>&1' | sudo tee /etc/cron.d/backup > /dev/null"
     fi
 
+    # --- GitHub backup setup ---
+    echo ""
+    echo "Setting up GitHub backup..."
+
+    # Generate SSH deploy key if not present
+    if ! ssh "$REMOTE" "test -f ~/.ssh/xdeca-backups-deploy"; then
+        echo "Generating SSH deploy key for xdeca-backups..."
+        ssh "$REMOTE" 'ssh-keygen -t ed25519 -f ~/.ssh/xdeca-backups-deploy -N "" -C "xdeca-backups-deploy"'
+    fi
+
+    # Configure SSH to use deploy key for the backup repo
+    ssh "$REMOTE" 'mkdir -p ~/.ssh && cat > ~/.ssh/config.d/xdeca-backups << '\''SSHEOF'\''
+Host github-backups
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/xdeca-backups-deploy
+    IdentitiesOnly yes
+SSHEOF'
+    # Ensure main SSH config includes config.d
+    ssh "$REMOTE" 'grep -q "Include config.d/\*" ~/.ssh/config 2>/dev/null || printf "Include config.d/*\n\n" | cat - ~/.ssh/config 2>/dev/null > /tmp/ssh_config_tmp && mv /tmp/ssh_config_tmp ~/.ssh/config || printf "Include config.d/*\n" > ~/.ssh/config'
+    ssh "$REMOTE" "chmod 600 ~/.ssh/config ~/.ssh/config.d/xdeca-backups"
+
+    # Print deploy key for operator
+    echo ""
+    echo "============================================"
+    echo "  GitHub Deploy Key (add to 10xdeca/xdeca-backups with WRITE access)"
+    echo "============================================"
+    ssh "$REMOTE" "cat ~/.ssh/xdeca-backups-deploy.pub"
+    echo "============================================"
+    echo ""
+
     echo "Backup configuration complete!"
     echo "  - AWS credentials: ~/.aws/"
     echo "  - rclone config: ~/.config/rclone/rclone.conf"
+    echo "  - GitHub backup: 10xdeca/xdeca-backups (private repo)"
+    echo "  - Deploy key: ~/.ssh/xdeca-backups-deploy"
     echo "  - Scripts: /opt/scripts/backup.sh, /opt/scripts/restore.sh"
     echo "  - Cron: Daily at 4 AM"
     echo ""
-    echo "Test with: ssh $REMOTE 'rclone lsd s3:'"
+    echo "Test with: ssh $REMOTE '/opt/scripts/backup.sh all'"
 }
 
 deploy_outline() {

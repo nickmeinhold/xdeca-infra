@@ -1,6 +1,6 @@
 #!/bin/bash
 # Unified backup script for all services
-# Backs up to AWS S3 via rclone
+# Backs up to AWS S3 via rclone + redundant copies to GitHub
 # Usage: ./backup.sh [all|kanbn|outline]
 
 set -e
@@ -11,6 +11,10 @@ DATE=$(date +%Y-%m-%d)
 RCLONE_REMOTE="s3"
 BUCKET="xdeca-backups"
 RETENTION_DAYS=7
+
+# GitHub backup config
+GITHUB_BACKUP_REPO="git@github-backups:10xdeca/xdeca-backups.git"
+GITHUB_BACKUP_DIR="/tmp/xdeca-backups"
 
 # Colors for output
 RED='\033[0;31m'
@@ -58,6 +62,66 @@ backup_outline() {
   log "Outline backup complete: outline-$DATE.sql.gz"
 }
 
+backup_to_github() {
+  local services=("$@")
+
+  # Check prerequisites
+  if ! command -v git &> /dev/null; then
+    error "git not installed, skipping GitHub backup"
+    return 0
+  fi
+  if [ ! -f "$HOME/.ssh/xdeca-backups-deploy" ]; then
+    error "Deploy key not found at ~/.ssh/xdeca-backups-deploy, skipping GitHub backup"
+    return 0
+  fi
+
+  log "Pushing backups to GitHub..."
+
+  # Clone or pull the backup repo (shallow)
+  if [ -d "$GITHUB_BACKUP_DIR/.git" ]; then
+    git -C "$GITHUB_BACKUP_DIR" pull --rebase 2>/dev/null || {
+      rm -rf "$GITHUB_BACKUP_DIR"
+      git clone --depth 1 "$GITHUB_BACKUP_REPO" "$GITHUB_BACKUP_DIR"
+    }
+  else
+    rm -rf "$GITHUB_BACKUP_DIR"
+    git clone --depth 1 "$GITHUB_BACKUP_REPO" "$GITHUB_BACKUP_DIR" 2>/dev/null || {
+      # First push — repo may be empty
+      mkdir -p "$GITHUB_BACKUP_DIR"
+      git -C "$GITHUB_BACKUP_DIR" init
+      git -C "$GITHUB_BACKUP_DIR" remote add origin "$GITHUB_BACKUP_REPO"
+    }
+  fi
+
+  # Copy each service dump
+  for svc in "${services[@]}"; do
+    local dump="$BACKUP_DIR/${svc}-${DATE}.sql.gz"
+    local dest="$GITHUB_BACKUP_DIR/${svc}.sql.gz"
+
+    if [ ! -f "$dump" ]; then
+      error "Dump file not found: $dump"
+      continue
+    fi
+
+    cp "$dump" "$dest"
+    log "Copied $svc backup → ${svc}.sql.gz"
+  done
+
+  # Commit and push
+  git -C "$GITHUB_BACKUP_DIR" add -A
+  if git -C "$GITHUB_BACKUP_DIR" diff --cached --quiet; then
+    log "No changes to push to GitHub"
+  else
+    git -C "$GITHUB_BACKUP_DIR" \
+      -c user.name="xdeca-backup" \
+      -c user.email="backup@xdeca.com" \
+      commit -m "backup $DATE"
+    git -C "$GITHUB_BACKUP_DIR" push origin HEAD 2>/dev/null || \
+      git -C "$GITHUB_BACKUP_DIR" push --set-upstream origin main
+    log "Backups pushed to GitHub"
+  fi
+}
+
 cleanup_old_backups() {
   log "Cleaning up backups older than $RETENTION_DAYS days..."
 
@@ -78,13 +142,16 @@ case $SERVICE in
   all)
     backup_kanbn
     backup_outline
+    backup_to_github kanbn outline
     cleanup_old_backups
     ;;
   kanbn)
     backup_kanbn
+    backup_to_github kanbn
     ;;
   outline)
     backup_outline
+    backup_to_github outline
     ;;
   cleanup)
     cleanup_old_backups
