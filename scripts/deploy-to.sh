@@ -136,7 +136,7 @@ EOF
     fi
 
     # Configure SSH to use deploy key for the backup repo
-    ssh "$REMOTE" 'mkdir -p ~/.ssh && cat > ~/.ssh/config.d/xdeca-backups << '\''SSHEOF'\''
+    ssh "$REMOTE" 'mkdir -p ~/.ssh/config.d && cat > ~/.ssh/config.d/xdeca-backups << '\''SSHEOF'\''
 Host github-backups
     HostName github.com
     User git
