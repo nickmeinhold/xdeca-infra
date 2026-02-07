@@ -17,7 +17,6 @@ Infrastructure monorepo for self-hosted services.
 |----------|-----------|--------|------|
 | AWS Lightsail | [lightsail](./lightsail/) | **Active** | ~$12/mo |
 | Oracle Cloud | [oci-vps](./oci-vps/) | Pending | Free |
-| Namecheap DNS | [dns](./dns/) | **Active** | - |
 
 ## Architecture
 
@@ -49,20 +48,11 @@ age-keygen -o ~/.config/sops/age/keys.txt
 ./scripts/deploy-to.sh 13.54.159.183 all
 ```
 
-### 3. DNS (run from Pi - IP whitelisted)
-
-```bash
-ssh pi
-cd ~/xdeca-infra/dns
-make apply
-```
-
 ## Repository Structure
 
 ```
 .
 ├── caddy/                  # Reverse proxy config
-├── dns/                    # Namecheap DNS (Terraform)
 ├── kanbn/                  # Kan.bn (Trello alternative)
 ├── outline/                # Outline wiki
 ├── lightsail/              # AWS Lightsail VPS

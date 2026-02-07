@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [dns, lightsail, oci-vps/terraform]
+        dir: [lightsail, oci-vps/terraform]
     steps:
       - uses: actions/checkout@v4
 

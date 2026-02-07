@@ -20,7 +20,6 @@ The Lightsail VPS has limited resources (2GB RAM, 1 vCPU). Running many `docker 
 .
 ├── backups/            # Backup config (AWS S3)
 ├── caddy/              # Reverse proxy (Caddy)
-├── dns/                # DNS (Terraform) - xdeca.com only
 ├── kan-bot/            # Telegram bot for Kan.bn
 ├── kanbn/              # Kanban boards (Trello alternative)
 ├── outline/            # Team wiki (Notion alternative)
@@ -37,7 +36,7 @@ The Lightsail VPS has limited resources (2GB RAM, 1 vCPU). Running many `docker 
 - Dismisses stale reviews on new commits
 
 **CI checks (`.github/workflows/ci.yml`):**
-- Terraform fmt + validate (dns, lightsail, oci-vps/terraform)
+- Terraform fmt + validate (lightsail, oci-vps/terraform)
 - ShellCheck for all bash scripts
 - yamllint for docker-compose and workflow files
 
@@ -179,20 +178,6 @@ make apply
 make ssh
 make deploy   # Deploy all services
 ```
-
----
-
-# dns
-
-DNS records managed via Terraform (xdeca.com on Namecheap).
-
-```bash
-cd dns
-make plan    # Preview changes
-make apply   # Apply (requires whitelisted IP - run from Pi)
-```
-
-**Note**: Namecheap API requires IP whitelisting. Run from Pi which is already whitelisted.
 
 ---
 

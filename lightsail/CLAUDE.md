@@ -49,9 +49,8 @@ make deploy   # Deploy all services
 
 ## After Provisioning
 
-1. Update DNS records in `dns/` with new IP
-2. Run `make deploy` to set up services
-3. Configure secrets for each service
+1. Run `make deploy` to set up services
+2. Configure secrets for each service
 
 ## Bundle Options
 
