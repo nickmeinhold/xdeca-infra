@@ -1,7 +1,7 @@
 services:
   kanbn:
     build:
-      context: https://github.com/10xdeca/kan.git#main
+      context: ./kan-source
       dockerfile: apps/web/Dockerfile
     image: kanbn:local
     container_name: kanbn

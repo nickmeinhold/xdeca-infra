@@ -254,14 +254,26 @@ NEXT_PUBLIC_STORAGE_URL=\(.next_public_storage_url)
 WEBHOOK_URL=\(.webhook_url)
 WEBHOOK_SECRET=\(.webhook_secret)"' > "$REPO_ROOT/kanbn/.env"
 
+    local KAN_SRC="$REPO_ROOT/../kan"
+
+    # Check for source code
+    if [ ! -d "$KAN_SRC" ]; then
+        echo "ERROR: kan source not found at $KAN_SRC"
+        echo "Clone it with: git clone git@github.com:10xdeca/kan.git $KAN_SRC"
+        return 1
+    fi
+
     # Deploy files
-    ssh "$REMOTE" "mkdir -p ~/apps/kanbn"
-    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/kanbn/" "$REMOTE":~/apps/kanbn/
+    ssh "$REMOTE" "mkdir -p ~/apps/kanbn/kan-source"
+    rsync -avz --delete --exclude 'secrets.yaml' "$REPO_ROOT/kanbn/" "$REMOTE":~/apps/kanbn/ --exclude 'kan-source'
+
+    # Copy kan source code
+    rsync -avz --delete --exclude 'node_modules' --exclude '.next' --exclude 'dist' --exclude '.env' --exclude '.git' "$KAN_SRC/" "$REMOTE":~/apps/kanbn/kan-source/
 
     # Clean up local .env
     rm -f "$REPO_ROOT/kanbn/.env"
 
-    # Build and start Kan.bn (builds from 10xdeca/kan fork)
+    # Build and start Kan.bn (builds from local source)
     ssh "$REMOTE" "cd ~/apps/kanbn && DOCKER_BUILDKIT=1 docker compose build --pull && docker compose up -d"
 
     echo "Kan.bn deployed!"
