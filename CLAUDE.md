@@ -139,7 +139,12 @@ Daily backups to Google Cloud Storage.
 
 ## Secrets Management
 
-Everything is encrypted with SOPS/age. Only one secret exists unencrypted: `~/.config/sops/age/keys.txt`
+Everything is encrypted with SOPS/age. The age key is at the default location: `~/.config/sops/age/keys.txt`
+
+**Local decryption:** The key is available on Nick's machine. To decrypt/edit secrets locally, set the env var:
+```bash
+export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
+```
 
 ```bash
 # Setup age key (one-time)
