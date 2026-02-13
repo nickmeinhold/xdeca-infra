@@ -123,12 +123,14 @@ Daily backups to Google Cloud Storage.
 |---------|----------|-----------|
 | Kan.bn | 4 AM | 7 days |
 | Outline | 4 AM | 7 days |
+| xdeca-pm-bot | 4 AM | 7 days |
 
 ```bash
 # Manual commands (run on VPS)
 /opt/scripts/backup.sh all      # Run backup
 /opt/scripts/restore.sh kanbn   # Restore Kan.bn
 /opt/scripts/restore.sh outline # Restore Outline
+/opt/scripts/restore.sh pm-bot  # Restore xdeca-pm-bot
 ```
 
 ## Cloud Provider

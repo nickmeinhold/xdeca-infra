@@ -47,6 +47,20 @@ backup_kanbn() {
   log "Kan.bn backup complete: kanbn-$DATE.sql.gz"
 }
 
+backup_pm_bot() {
+  log "Backing up xdeca-pm-bot..."
+
+  local backup_file="$BACKUP_DIR/pm-bot-$DATE.db"
+
+  # Copy SQLite database from container volume
+  docker cp xdeca-pm-bot:/app/data/kan-bot.db "$backup_file"
+
+  # Upload to object storage
+  rclone copy "$backup_file" "$RCLONE_REMOTE:$BUCKET/pm-bot/"
+
+  log "xdeca-pm-bot backup complete: pm-bot-$DATE.db"
+}
+
 backup_outline() {
   log "Backing up Outline..."
 
@@ -133,6 +147,8 @@ cleanup_old_backups() {
     --min-age "${RETENTION_DAYS}d" 2>/dev/null || true
   rclone delete "$RCLONE_REMOTE:$BUCKET/outline/" \
     --min-age "${RETENTION_DAYS}d" 2>/dev/null || true
+  rclone delete "$RCLONE_REMOTE:$BUCKET/pm-bot/" \
+    --min-age "${RETENTION_DAYS}d" 2>/dev/null || true
 
   log "Cleanup complete"
 }
@@ -142,6 +158,7 @@ case $SERVICE in
   all)
     backup_kanbn
     backup_outline
+    backup_pm_bot
     backup_to_github kanbn outline
     cleanup_old_backups
     ;;
@@ -153,11 +170,14 @@ case $SERVICE in
     backup_outline
     backup_to_github outline
     ;;
+  pm-bot)
+    backup_pm_bot
+    ;;
   cleanup)
     cleanup_old_backups
     ;;
   *)
-    echo "Usage: $0 [all|kanbn|outline|cleanup]"
+    echo "Usage: $0 [all|kanbn|outline|pm-bot|cleanup]"
     exit 1
     ;;
 esac

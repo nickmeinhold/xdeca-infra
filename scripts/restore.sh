@@ -133,6 +133,42 @@ restore_outline() {
   log "Outline restore complete!"
 }
 
+restore_pm_bot() {
+  log "Restoring xdeca-pm-bot..."
+
+  # Find backup file
+  if [ -n "$DATE" ]; then
+    BACKUP_FILE="pm-bot-$DATE.db"
+  else
+    BACKUP_FILE=$(rclone ls "$RCLONE_REMOTE:$BUCKET/pm-bot/" | sort -r | head -1 | awk '{print $2}')
+  fi
+
+  if [ -z "$BACKUP_FILE" ]; then
+    error "No backup found"
+    list_backups pm-bot
+    exit 1
+  fi
+
+  log "Restoring from: $BACKUP_FILE"
+
+  # Download backup
+  log "Downloading backup from GCS..."
+  rclone copy "$RCLONE_REMOTE:$BUCKET/pm-bot/$BACKUP_FILE" "$RESTORE_DIR/"
+
+  # Copy SQLite database into container volume
+  log "Restoring database..."
+  docker cp "$RESTORE_DIR/$BACKUP_FILE" xdeca-pm-bot:/app/data/kan-bot.db
+
+  log "Restarting xdeca-pm-bot..."
+  cd ~/apps/xdeca-pm-bot
+  docker compose restart
+
+  # Cleanup
+  rm -f "$RESTORE_DIR/$BACKUP_FILE"
+
+  log "xdeca-pm-bot restore complete!"
+}
+
 # Run restore
 case $SERVICE in
   kanbn)
@@ -141,12 +177,15 @@ case $SERVICE in
   outline)
     restore_outline
     ;;
+  pm-bot)
+    restore_pm_bot
+    ;;
   list)
     list_backups "${DATE:-kanbn}"
     ;;
   *)
     error "Unknown service: $SERVICE"
-    echo "Valid services: kanbn, outline, list"
+    echo "Valid services: kanbn, outline, pm-bot, list"
     exit 1
     ;;
 esac
